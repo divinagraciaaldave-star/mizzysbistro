@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mizzy's Bistro POS Mobile App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <!-- Include html2pdf library for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .receipt-font { font-family: 'Courier New', Courier, monospace; }
+        
+        /* 80mm Thermal Printer Media Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt-paper, #receipt-paper *, #shift-receipt-paper, #shift-receipt-paper * {
+                visibility: visible;
+            }
+            #receipt-paper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 72mm; /* Standard printable area for 80mm roll */
+                margin: 0;
+                padding: 4mm;
+                border: none;
+                box-shadow: none;
+                background: white;
+            }
+            #shift-receipt-paper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 72mm;
+                margin: 0;
+                padding: 4mm;
+                border: none;
+                box-shadow: none;
+                background: white;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-full flex flex-col overflow-hidden">
+
+    <!-- Top Bar / Navigation Header -->
+    <header class="bg-slate-900 text-white shadow-lg flex items-center justify-between px-4 py-3 z-30 shrink-0 border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white font-bold p-2.5 rounded-2xl flex items-center justify-center shadow-md">
+                <i class="fa-solid fa-utensils text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight tracking-wide">Mizzy's Bistro POS</h1>
+                <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    <span id="shift-status-dot" class="w-2 h-2 rounded-full bg-rose-400 inline-block"></span> 
+                    <span id="shift-status-text">Register #1 &bull; Shift Closed</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <nav class="flex items-center bg-slate-800/80 p-1.5 rounded-2xl text-xs sm:text-sm font-medium border border-slate-700/50 shadow-inner">
+            <button onclick="switchTab('register')" id="tab-register" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 bg-emerald-600 text-white shadow-md">
+                <i class="fa-solid fa-store"></i> <span class="hidden sm:inline">Register</span>
+            </button>
+            <button onclick="switchTab('orders')" id="tab-orders" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-receipt"></i> <span class="hidden sm:inline">Orders</span> 
+                <span id="order-badge" class="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full text-xs">0</span>
+            </button>
+            <button onclick="switchTab('menu')" id="tab-menu" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-utensils"></i> <span class="hidden sm:inline">Menu</span>
+            </button>
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-boxes-stacked"></i> <span class="hidden sm:inline">Inventory</span>
+            </button>
+            <button onclick="switchTab('reports')" id="tab-reports" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">Reports</span>
+            </button>
+            <button onclick="openShiftModal()" id="tab-shift" class="px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-amber-300 hover:text-amber-100 bg-amber-500/10 border border-amber-500/30">
+                <i class="fa-solid fa-clock-rotate-left"></i> <span id="shift-btn-label">Shift</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main App Body -->
+    <main class="flex-1 flex overflow-hidden relative">
+
+        <!-- ================= 1. REGISTER TAB ================= -->
+        <div id="view-register" class="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
+            
+            <!-- Left Side: Categories & Menu Grid -->
+            <div class="flex-1 flex flex-col h-full bg-slate-50/50 overflow-hidden">
+                
+                <!-- Category Filter Bar -->
+                <div class="bg-white border-b border-slate-200/80 px-4 py-3 shrink-0 flex items-center gap-2.5 overflow-x-auto shadow-sm" id="category-bar">
+                    <!-- Dynamic Categories -->
+                </div>
+
+                <!-- Search & Quick Filter Bar -->
+                <div class="px-4 py-2.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center gap-3 shrink-0">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="menu-search" oninput="filterMenuSearch(this.value)" placeholder="Search menu items..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm transition">
+                    </div>
+                    <button onclick="openPrinterModal()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition">
+                        <i class="fa-solid fa-print text-emerald-600"></i> <span class="hidden sm:inline">Printers</span>
+                    </button>
+                </div>
+
+                <!-- Menu Items Grid -->
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div id="menu-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                        <!-- Dynamic Menu Cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Current Order Panel (Cart) -->
+            <div id="cart-panel" class="w-full md:w-96 lg:w-[440px] bg-white border-l border-slate-200 flex flex-col h-full shadow-2xl z-20 shrink-0">
+                <div class="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                        </div>
+                        <h2 class="font-bold text-base" id="cart-panel-title">Current Order</h2>
+                    </div>
+                    <button onclick="clearCart()" class="text-xs font-medium text-rose-300 hover:text-rose-100 bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition">Clear All</button>
+                </div>
+
+                <!-- Cart Items List -->
+                <div id="cart-items" class="flex-1 overflow-y-auto p-4 divide-y divide-slate-100">
+                    <div class="text-center py-16 text-slate-400">
+                        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-300">
+                            <i class="fa-solid fa-basket-shopping text-2xl"></i>
+                        </div>
+                        <p class="text-sm font-medium">Your order is empty</p>
+                        <p class="text-xs text-slate-400 mt-1">Tap menu items to add to order</p>
+                    </div>
+                </div>
+
+                <!-- Cart Summary & Checkout -->
+                <div class="p-4 bg-slate-50/80 border-t border-slate-200/80 shrink-0 space-y-3">
+                    <div class="space-y-1.5 text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 shadow-sm">
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>VAT (Included in Price)</span>
+                            <span id="cart-vat" class="font-medium text-slate-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>Service Charge (Included in Price)</span>
+                            <span id="cart-sc" class="font-medium text-slate-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-100">
+                            <span>Total Amount</span>
+                            <span id="cart-total" class="text-emerald-600 text-lg">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button onclick="initiateSaveOrder()" id="btn-save-order" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bookmark"></i> Save Order
+                        </button>
+                        <button onclick="openCheckoutModal('Cash')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cash-register"></i> Charge
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 2. ORDERS TAB ================= -->
+        <div id="view-orders" class="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden hidden">
+            <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm">
+                <div>
+                    <h2 class="font-bold text-lg text-slate-900">Active & Saved Orders</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Manage customer tables, status, and print receipts</p>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="filterOrders('all')" id="filter-btn-all" class="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-sm transition">All Orders</button>
+                    <button onclick="filterOrders('Pending')" id="filter-btn-pending" class="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-semibold transition">Pending</button>
+                    <button onclick="filterOrders('Completed')" id="filter-btn-completed" class="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-semibold transition">Completed</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4">
+                <div id="orders-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamic Orders -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 3. MENU MANAGEMENT TAB ================= -->
+        <div id="view-menu" class="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden hidden">
+            <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm">
+                <div>
+                    <h2 class="font-bold text-lg text-slate-900">Menu Management</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Add new items, update prices, change descriptions, or categories</p>
+                </div>
+                <button onclick="openItemModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add New Item
+                </button>
+            </div>
+            
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center gap-3 shrink-0">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="manage-search" oninput="filterManageMenu(this.value)" placeholder="Search items in menu..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                </div>
+                <select id="manage-cat-filter" onchange="filterManageMenu()" class="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+                                <th class="p-4">Item Name</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Price (₱)</th>
+                                <th class="p-4">Description</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manage-table-body" class="divide-y divide-slate-100">
+                            <!-- Dynamic Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 4. INVENTORY TAB (NEW) ================= -->
+        <div id="view-inventory" class="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden hidden">
+            <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm">
+                <div>
+                    <h2 class="font-bold text-lg text-slate-900">Inventory & Stock Control</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Toggle real-time stock status (In Stock / Sold Out) and manage item levels</p>
+                </div>
+                <button onclick="openInventoryItemModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add Inventory Item
+                </button>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center gap-3 shrink-0">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="inventory-search" oninput="filterInventoryList(this.value)" placeholder="Search inventory items..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+                                <th class="p-4">Item Name</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Stock Status</th>
+                                <th class="p-4">Stock Level / Qty</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-slate-100">
+                            <!-- Dynamic Inventory Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 5. SALES REPORT TAB ================= -->
+        <div id="view-reports" class="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden hidden">
+            <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm">
+                <div>
+                    <h2 class="font-bold text-lg text-slate-900">Sales Dashboard & Reports</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Real-time revenue metrics, category breakdown, and payment methods</p>
+                </div>
+                <button onclick="refreshReports()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Gross Sales</p>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-1.5" id="rep-total-sales">₱0.00</h3>
+                        <p class="text-xs text-emerald-600 mt-2 font-semibold flex items-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> Today's performance</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Orders</p>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-1.5" id="rep-total-orders">0</h3>
+                        <p class="text-xs text-slate-500 mt-2">Saved & completed tickets</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Average Order Value</p>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-1.5" id="rep-avg-order">₱0.00</h3>
+                        <p class="text-xs text-slate-500 mt-2">Per transaction average</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Top Payment Method</p>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-1.5" id="rep-top-payment">Cash (100%)</h3>
+                        <p class="text-xs text-slate-500 mt-2">Bistro processing</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-base text-slate-900 mb-4">Sales by Category</h3>
+                        <div id="rep-category-breakdown" class="space-y-3.5"></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                        <h3 class="font-bold text-base text-slate-900 mb-4">Recent Transactions</h3>
+                        <div class="flex-1 overflow-y-auto max-h-72 divide-y divide-slate-100" id="rep-recent-transactions"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Shift Management Modal -->
+    <div id="modal-shift" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 id="shift-modal-title" class="font-bold text-base">Shift Control</h3>
+                <button onclick="closeModal('modal-shift')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <div id="shift-modal-content" class="space-y-3">
+                    <p class="text-xs text-slate-500">Opening a shift initializes your cash drawer starting amount for tracking sales.</p>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Starting Cash Float (₱)</label>
+                        <input type="number" id="shift-float-amount" value="1000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="shift-print-btn" onclick="printShiftReport()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-print"></i> Print Shift
+                    </button>
+                    <button id="shift-action-btn" onclick="toggleShift()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-base shadow-lg transition">
+                        Open Shift
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Printable Area for Shift Report -->
+    <div class="hidden">
+        <div id="shift-receipt-paper" class="bg-white w-[72mm] p-3 receipt-font text-[11px] text-slate-900 space-y-1 leading-tight shadow-sm"></div>
+    </div>
+
+    <!-- Order Details Prompt Modal (Customer & Table) -->
+    <div id="modal-order-details" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 class="font-bold text-base">Order Details</h3>
+                <button onclick="closeModal('modal-order-details')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Customer Number</label>
+                    <input type="text" id="prompt-cust-number" value="Customer 1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Table Number</label>
+                    <select id="prompt-table-number" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                        <!-- Dynamic Table Options -->
+                    </select>
+                </div>
+                <button onclick="confirmSaveOrder()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl text-base shadow-lg transition">
+                    Confirm & Save Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. Universal Modifier Modal (Dynamic Options) -->
+    <div id="modal-modifier" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 id="modifier-modal-title" class="font-bold text-base">Select Options</h3>
+                <button onclick="closeModal('modal-modifier')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-4" id="modifier-modal-body">
+                <!-- Dynamically populated options -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Checkout Payment Modal -->
+    <div id="modal-checkout" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 class="font-bold text-base">Complete Payment</h3>
+                <button onclick="closeModal('modal-checkout')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl text-center">
+                    <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Amount Due</p>
+                    <h2 id="checkout-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">₱0.00</h2>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Select Payment Method</label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button onclick="setPaymentMethod('Cash')" id="pm-Cash" class="p-3.5 border-2 border-emerald-600 bg-emerald-50 text-emerald-900 rounded-2xl text-xs font-bold text-center transition shadow-sm">
+                            <i class="fa-solid fa-money-bill-wave text-lg block mb-1"></i> Cash
+                        </button>
+                        <button onclick="setPaymentMethod('GCash')" id="pm-GCash" class="p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl text-xs font-bold text-center transition shadow-sm">
+                            <i class="fa-solid fa-wallet text-lg block mb-1 text-sky-600"></i> GCash
+                        </button>
+                        <button onclick="setPaymentMethod('Card')" id="pm-Card" class="p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl text-xs font-bold text-center transition shadow-sm">
+                            <i class="fa-solid fa-credit-card text-lg block mb-1 text-indigo-600"></i> Card
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cash-payment-section" class="space-y-2.5">
+                    <label class="block text-xs font-bold text-slate-600 uppercase">Cash Tendered</label>
+                    <input type="number" id="cash-tendered" oninput="calculateChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="0.00">
+                    
+                    <!-- Suggested Tendered Amount Buttons -->
+                    <div id="suggested-amounts" class="grid grid-cols-4 gap-1.5 pt-1">
+                        <!-- Dynamic suggested quick buttons -->
+                    </div>
+
+                    <div class="flex justify-between text-sm pt-1 px-1">
+                        <span class="text-slate-500 font-medium">Change:</span>
+                        <span id="cash-change" class="font-bold text-slate-900">₱0.00</span>
+                    </div>
+                </div>
+
+                <button onclick="processCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-base shadow-lg transition">
+                    Complete & Print Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Receipt Preview & 80mm Thermal Printer Modal -->
+    <div id="modal-receipt" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xs overflow-hidden flex flex-col max-h-[90vh] border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between shrink-0">
+                <h3 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-receipt text-emerald-400"></i> 80mm Receipt</h3>
+                <button onclick="closeModal('modal-receipt')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-200 flex justify-center">
+                <!-- Exact 80mm width standard thermal paper container (~72mm printable width) -->
+                <div id="receipt-paper" class="bg-white w-[72mm] p-3 receipt-font text-[11px] text-slate-900 space-y-1 leading-tight shadow-sm">
+                    <!-- Dynamic Thermal Receipt Content -->
+                </div>
+            </div>
+
+            <div class="p-3.5 bg-white border-t border-slate-200 shrink-0 grid grid-cols-2 gap-2.5">
+                <button onclick="closeModal('modal-receipt')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition">
+                    Close
+                </button>
+                <button onclick="executeDevicePrint()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-print"></i> Print 80mm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Add/Edit Menu Item Modal -->
+    <div id="modal-item-edit" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 id="item-modal-title" class="font-bold text-base">Add / Edit Menu Item</h3>
+                <button onclick="closeModal('modal-item-edit')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-item-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Item Name</label>
+                    <input type="text" id="edit-item-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="e.g. Sisig">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Category</label>
+                    <select id="edit-item-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Price (₱)</label>
+                        <input type="number" id="edit-item-price" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="350">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Item Modifier Type</label>
+                        <select id="edit-item-mod-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                            <option value="none">Standard / None</option>
+                            <option value="sisig">Sisig (With Egg Option +₱30)</option>
+                            <option value="breakfast">All-Day Breakfast (Multi-select options)</option>
+                            <option value="coffee">Coffee (Hot/Cold +₱20)</option>
+                            <option value="sanmig">San Miguel Beer Flavors</option>
+                            <option value="wings">Chicken Wings Flavors</option>
+                            <option value="fries">French Fries Flavors</option>
+                            <option value="matcha">Matcha (Hot/Cold)</option>
+                            <option value="soda">Soda in Can Flavors</option>
+                            <option value="steak">Ribeye Steak (Doneness & Side)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Description</label>
+                    <textarea id="edit-item-desc" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="Short description..."></textarea>
+                </div>
+                <div class="pt-2 flex gap-3">
+                    <button onclick="closeModal('modal-item-edit')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition">Cancel</button>
+                    <button onclick="saveMenuItem()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Add/Edit Inventory Item Modal -->
+    <div id="modal-inventory-edit" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-100">
+            <div class="bg-slate-900 text-white p-4.5 flex items-center justify-between">
+                <h3 id="inventory-modal-title" class="font-bold text-base">Add / Edit Inventory Item</h3>
+                <button onclick="closeModal('modal-inventory-edit')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-inv-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Item Name</label>
+                    <input type="text" id="edit-inv-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="e.g. Bacon Cheese Asparagus">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Category</label>
+                    <select id="edit-inv-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Stock Status</label>
+                        <select id="edit-inv-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                            <option value="In Stock">In Stock</option>
+                            <option value="Sold Out">Sold Out</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Stock Level / Qty</label>
+                        <input type="text" id="edit-inv-level" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm" placeholder="e.g. 50 units / Available">
+                    </div>
+                </div>
+                <div class="pt-2 flex gap-3">
+                    <button onclick="closeModal('modal-inventory-edit')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition">Cancel</button>
+                    <button onclick="saveInventoryItem()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition">Save Inventory Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        let initialMenu = JSON.parse(localStorage.getItem('mizzys_menu')) || [
+            // APPETIZERS
+            { id: 1, name: "Sisig", category: "APPETIZERS", price: 350, desc: "Sizzling pork sisig with calamansi and chilies", modType: "sisig" },
+            { id: 2, name: "Buttered Shrimp", category: "APPETIZERS", price: 300, desc: "Fresh shrimps sautéed in garlic butter", modType: "none" },
+            { id: 3, name: "Chicken Wings", category: "APPETIZERS", price: 280, desc: "Crispy wings tossed in signature sauce", modType: "wings" },
+            { id: 4, name: "Bacon Cheese Asparagus", category: "APPETIZERS", price: 280, desc: "Asparagus wrapped in bacon and melted cheese", modType: "none" },
+            
+            // ALL-DAY BREAKFAST
+            { id: 5, name: "Daing na Bangus", category: "ALL-DAY BREAKFAST", price: 330, desc: "Marinated milkfish served with garlic rice and egg", modType: "breakfast" },
+            { id: 6, name: "Longanisa (Garlic)", category: "ALL-DAY BREAKFAST", price: 300, desc: "Traditional sweet garlic pork sausage", modType: "breakfast" },
+            { id: 7, name: "Burger Steak", category: "ALL-DAY BREAKFAST", price: 300, desc: "Beef patties in rich mushroom gravy", modType: "breakfast" },
+            { id: 8, name: "Corned Beef", category: "ALL-DAY BREAKFAST", price: 300, desc: "Homemade style chunky corned beef", modType: "breakfast" },
+            { id: 9, name: "Bacon", category: "ALL-DAY BREAKFAST", price: 300, desc: "Crispy strips of smoked bacon", modType: "breakfast" },
+            { id: 10, name: "Chicken Pastil", category: "ALL-DAY BREAKFAST", price: 300, desc: "Shredded spiced chicken wrapped in banana leaves", modType: "breakfast" },
+
+            // MAINS
+            { id: 11, name: "Prime USDA Ribeye Steak", category: "MAINS", price: 1650, desc: "Juicy tender USDA ribeye grilled to perfection", modType: "steak" },
+            { id: 12, name: "Tuna Steak", category: "MAINS", price: 500, desc: "Pan-seared fresh tuna steak with soy-ginger glaze", modType: "none" },
+            { id: 13, name: "Chicken Curry", category: "MAINS", price: 400, desc: "Tender chicken chunks in rich coconut curry sauce", modType: "none" },
+            { id: 14, name: "Adobong Manok sa Gata", category: "MAINS", price: 400, desc: "Classic chicken adobo simmered in coconut milk", modType: "none" },
+            { id: 15, name: "Beef Caldereta", category: "MAINS", price: 600, desc: "Slow-cooked beef stew in spicy tomato sauce", modType: "none" },
+            { id: 16, name: "Pork Binagoongan", category: "MAINS", price: 400, desc: "Crispy pork belly sautéed in savory shrimp paste", modType: "none" },
+            { id: 17, name: "Dinakdakan", category: "MAINS", price: 350, desc: "Grilled pork parts tossed in creamy dressing", modType: "none" },
+            { id: 18, name: "Steamed Pompano", category: "MAINS", price: 500, desc: "Fresh pompano steamed with ginger and scallions", modType: "none" },
+            { id: 19, name: "Sinigang na Salmon", category: "MAINS", price: 550, desc: "Salmon belly in rich sour tamarind broth", modType: "none" },
+            { id: 20, name: "Sinigang na Pompano", category: "MAINS", price: 550, desc: "Whole pompano in tangy tamarind soup", modType: "none" },
+
+            // VEGETABLES
+            { id: 21, name: "Laing with Lechon Kawali", category: "VEGETABLES", price: 350, desc: "Taro leaves in rich coconut milk topped with crispy pork", modType: "none" },
+            { id: 22, name: "Asian Salad with dressing", category: "VEGETABLES", price: 220, desc: "Fresh crisp greens with sesame oriental dressing", modType: "none" },
+            { id: 23, name: "Gising-gising", category: "VEGETABLES", price: 250, desc: "Spicy green beans in coconut milk and minced pork", modType: "none" },
+
+            // SNACKS
+            { id: 24, name: "Mizzy's Spaghetti", category: "SNACKS", price: 225, desc: "Sweet style Filipino party spaghetti with hotdog and cheese", modType: "none" },
+            { id: 25, name: "Cheese Burger", category: "SNACKS", price: 150, desc: "Classic beef patty with melted cheese and fresh lettuce", modType: "none" },
+            { id: 26, name: "French Fries Plain", category: "SNACKS", price: 150, desc: "Golden crispy potato fries", modType: "none" },
+            { id: 27, name: "French Fries Flavored", category: "SNACKS", price: 175, desc: "Flavored crispy fries", modType: "fries" },
+            { id: 28, name: "Chessy Nachos", category: "SNACKS", price: 200, desc: "Tortilla chips loaded with melted cheese and beef bits", modType: "none" },
+
+            // EXTRAS
+            { id: 29, name: "Fried Egg", category: "EXTRAS", price: 30, desc: "Sunny side up or scrambled", modType: "none" },
+            { id: 30, name: "Rice Cup", category: "EXTRAS", price: 40, desc: "Steamed white rice", modType: "none" },
+            { id: 31, name: "Half Rice", category: "EXTRAS", price: 25, desc: "Half portion rice", modType: "none" },
+            { id: 32, name: "Mushroom Soup", category: "EXTRAS", price: 150, desc: "Creamy warm mushroom soup", modType: "none" },
+            { id: 33, name: "Mashed Potatoes", category: "EXTRAS", price: 110, desc: "Smooth buttery mashed potatoes", modType: "none" },
+
+            // DESSERTS
+            { id: 34, name: "Cheesecake Cup", category: "DESSERTS", price: 130, desc: "Creamy New York style cheesecake cup", modType: "none" },
+            { id: 35, name: "Chessy Bibingka", category: "DESSERTS", price: 80, desc: "Traditional rice cake with salted egg and cheese", modType: "none" },
+            { id: 36, name: "Brownies", category: "DESSERTS", price: 80, desc: "Fudgy chocolate brownie square", modType: "none" },
+            { id: 37, name: "Biscoff", category: "DESSERTS", price: 150, desc: "Biscoff caramel cheesecake delight", modType: "none" },
+
+            // COFFEE
+            { id: 38, name: "Americano", category: "COFFEE", price: 120, desc: "Freshly brewed espresso", modType: "coffee" },
+            { id: 39, name: "Cappuccino", category: "COFFEE", price: 140, desc: "Espresso with steamed milk and thick foam", modType: "coffee" },
+            { id: 40, name: "Cafe Latte", category: "COFFEE", price: 140, desc: "Smooth espresso with balanced steamed milk", modType: "coffee" },
+            { id: 41, name: "Spanish Latte", category: "COFFEE", price: 150, desc: "Espresso with sweetened condensed milk", modType: "coffee" },
+            { id: 42, name: "Caramel Macchiato", category: "COFFEE", price: 160, desc: "Vanilla flavored latte with caramel drizzle", modType: "coffee" },
+            { id: 43, name: "Mocha Latte", category: "COFFEE", price: 150, desc: "Espresso combined with chocolate and milk", modType: "coffee" },
+            { id: 44, name: "Dark Mocha Latte", category: "COFFEE", price: 160, desc: "Rich dark chocolate mocha blend", modType: "coffee" },
+            { id: 45, name: "Coffee Jelly", category: "COFFEE", price: 200, desc: "Sweet iced coffee with coffee jelly bits", modType: "none" },
+
+            // DRINKS
+            { id: 46, name: "Soda in Can", category: "DRINKS", price: 75, desc: "Choice of soda can", modType: "soda" },
+            { id: 47, name: "Juice in Can", category: "DRINKS", price: 70, desc: "Refreshing fruit juice", modType: "none" },
+            { id: 48, name: "Matcha", category: "DRINKS", price: 160, desc: "Premium Japanese green tea latte", modType: "matcha" },
+            { id: 49, name: "Hibiscus Hot Tea", category: "DRINKS", price: 80, desc: "Soothing floral herbal tea", modType: "none" },
+            { id: 50, name: "Chamomile Tea", category: "DRINKS", price: 80, desc: "Relaxing caffeine-free tea", modType: "none" },
+            { id: 51, name: "Hot Choco", category: "DRINKS", price: 140, desc: "Rich tablea cocoa drink", modType: "none" },
+            { id: 52, name: "Iced Choco", category: "DRINKS", price: 160, desc: "Chilled rich chocolate drink", modType: "none" },
+            { id: 53, name: "Iced Tea (Glass)", category: "DRINKS", price: 50, desc: "House blend sweet iced tea", modType: "none" },
+            { id: 54, name: "Bottled Water", category: "DRINKS", price: 30, desc: "Purified drinking water 500ml", modType: "none" },
+
+            // FRUIT SHAKE
+            { id: 55, name: "Apple Shake", category: "FRUIT SHAKE", price: 150, desc: "Fresh blended apple shake", modType: "none" },
+            { id: 56, name: "Banana Shake", category: "FRUIT SHAKE", price: 150, desc: "Creamy banana fruit shake", modType: "none" },
+            { id: 57, name: "Mango Shake", category: "FRUIT SHAKE", price: 150, desc: "Sweet Philippine mango shake", modType: "none" },
+            { id: 58, name: "Watermelon Shake", category: "FRUIT SHAKE", price: 150, desc: "Refreshing watermelon shake", modType: "none" },
+            { id: 59, name: "Avocado Shake", category: "FRUIT SHAKE", price: 150, desc: "Rich avocado shake with milk", modType: "none" },
+            { id: 60, name: "Dragon Fruit Shake", category: "FRUIT SHAKE", price: 150, desc: "Exotic dragon fruit blend", modType: "none" },
+
+            // ALCOHOL DRINKS
+            { id: 61, name: "House Red Wine (Glass)", category: "ALCOHOL DRINKS", price: 180, desc: "Smooth red wine glass", modType: "none" },
+            { id: 62, name: "House Whiskey (Glass)", category: "ALCOHOL DRINKS", price: 200, desc: "Premium whiskey shot/glass", modType: "none" },
+            { id: 64, name: "San Miguel Beer", category: "ALCOHOL DRINKS", price: 100, desc: "San Miguel Pale Pilsen, Light, Apple, Zero or Cerveza Negra", modType: "sanmig" }
+        ];
+
+        let inventoryData = JSON.parse(localStorage.getItem('mizzys_inventory')) || initialMenu.map(i => ({
+            id: i.id,
+            name: i.name,
+            category: i.category,
+            status: "In Stock",
+            level: "50 units"
+        }));
+
+        let categories = [
+            "ALL", "APPETIZERS", "ALL-DAY BREAKFAST", "MAINS", "VEGETABLES", 
+            "SNACKS", "EXTRAS", "DESSERTS", "COFFEE", "DRINKS", "FRUIT SHAKE", "ALCOHOL DRINKS"
+        ];
+
+        let currentCart = JSON.parse(localStorage.getItem('mizzys_cart')) || [];
+        let savedOrders = JSON.parse(localStorage.getItem('mizzys_orders')) || [];
+        let selectedCategory = "ALL";
+        let activeModifierItem = null;
+        let selectedPaymentMethod = "Cash";
+        let currentCheckoutTotal = 0;
+        let receiptDataToPrint = null;
+        let orderFilterStatus = "all";
+        let editingOrderId = null; 
+        let customerCounter = parseInt(localStorage.getItem('mizzys_cust_counter')) || 1; 
+        let isShiftOpen = JSON.parse(localStorage.getItem('mizzys_shift_open')) || false;
+        let shiftData = JSON.parse(localStorage.getItem('mizzys_shift_data')) || { floatAmount: 0, startTime: null, startDateTimeStr: "" };
+
+        window.onload = function() {
+            renderCategories();
+            renderMenuGrid();
+            renderManageTable();
+            renderInventoryTable();
+            populateCategoryDropdowns();
+            populateTableDropdown();
+            updateCartDisplay();
+            refreshReports();
+            updateShiftUI();
+            
+            setInterval(updateOrderTimers, 1000);
+        };
+
+        function saveStateToStorage() {
+            localStorage.setItem('mizzys_menu', JSON.stringify(initialMenu));
+            localStorage.setItem('mizzys_inventory', JSON.stringify(inventoryData));
+            localStorage.setItem('mizzys_cart', JSON.stringify(currentCart));
+            localStorage.setItem('mizzys_orders', JSON.stringify(savedOrders));
+            localStorage.setItem('mizzys_cust_counter', customerCounter);
+            localStorage.setItem('mizzys_shift_open', JSON.stringify(isShiftOpen));
+            localStorage.setItem('mizzys_shift_data', JSON.stringify(shiftData));
+        }
+
+        function switchTab(tabName) {
+            ['register', 'orders', 'menu', 'inventory', 'reports'].forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                if(el) el.classList.add('hidden');
+                const tabEl = document.getElementById(`tab-${t}`);
+                if(tabEl) tabEl.className = "px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-slate-300 hover:text-white";
+            });
+            const targetView = document.getElementById(`view-${tabName}`);
+            if(targetView) targetView.classList.remove('hidden');
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if(targetTab) targetTab.className = "px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 bg-emerald-600 text-white shadow-md";
+            
+            if(tabName === 'reports') refreshReports();
+            if(tabName === 'orders') renderOrdersList();
+            if(tabName === 'inventory') renderInventoryTable();
+            if(tabName === 'register') populateTableDropdown();
+        }
+
+        // Shift Feature Functions
+        function openShiftModal() {
+            const modal = document.getElementById('modal-shift');
+            const title = document.getElementById('shift-modal-title');
+            const content = document.getElementById('shift-modal-content');
+            const actionBtn = document.getElementById('shift-action-btn');
+            const printBtn = document.getElementById('shift-print-btn');
+
+            if (!isShiftOpen) {
+                printBtn.classList.add('hidden');
+                title.innerText = "Open Shift (Cash Drawer)";
+                content.innerHTML = `
+                    <p class="text-xs text-slate-500">Enter starting cash float to initialize your register shift.</p>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Starting Float (₱)</label>
+                        <input type="number" id="shift-float-amount" value="1000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm">
+                    </div>
+                `;
+                actionBtn.innerText = "Open Shift";
+                actionBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-base shadow-lg transition";
+            } else {
+                printBtn.classList.remove('hidden');
+                const completedOrders = savedOrders.filter(o => o.status === 'Completed');
+                
+                let cashSales = 0, cashQty = 0;
+                let cardSales = 0, cardQty = 0;
+                let gcashSales = 0, gcashQty = 0;
+
+                completedOrders.forEach(o => {
+                    if (o.paymentMethod === 'Cash') {
+                        cashSales += o.total;
+                        cashQty++;
+                    } else if (o.paymentMethod === 'Card') {
+                        cardSales += o.total;
+                        cardQty++;
+                    } else if (o.paymentMethod === 'GCash') {
+                        gcashSales += o.total;
+                        gcashQty++;
+                    }
+                });
+
+                const totalSales = cashSales + cardSales + gcashSales;
+                const totalQty = cashQty + cardQty + gcashQty;
+                
+                const cashNet = cashSales / 1.12;
+                const cardNet = cardSales / 1.12;
+                const totalNet = totalSales / 1.12;
+                const expectedCash = shiftData.floatAmount + cashSales;
+
+                const closeTimeStr = new Date().toLocaleString();
+
+                title.innerText = "Close Shift Report";
+                content.innerHTML = `
+                    <div class="space-y-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200 receipt-font">
+                        <div class="text-center font-bold pb-2 border-b border-slate-300">
+                            Mizzy's Bistro &bull; Sales Shift Report
+                        </div>
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="flex justify-between"><span>Shift Open:</span><span class="font-bold">${shiftData.startDateTimeStr}</span></div>
+                            <div class="flex justify-between"><span>Shift Close:</span><span class="font-bold">${closeTimeStr}</span></div>
+                        </div>
+
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="font-bold text-slate-700">Cash Summary</div>
+                            <div class="flex justify-between pl-2"><span>Sales (${cashQty}):</span><span class="font-bold">₱${cashSales.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2"><span>Net:</span><span class="font-bold">₱${cashNet.toFixed(2)}</span></div>
+                        </div>
+
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="font-bold text-slate-700">Card Summary</div>
+                            <div class="flex justify-between pl-2"><span>Sales (${cardQty}):</span><span class="font-bold">₱${cardSales.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2"><span>Net:</span><span class="font-bold">₱${cardNet.toFixed(2)}</span></div>
+                        </div>
+
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="font-bold text-slate-700">Gcash Summary</div>
+                            <div class="flex justify-between pl-2"><span>Sales (${gcashQty}):</span><span class="font-bold">₱${gcashSales.toFixed(2)}</span></div>
+                        </div>
+
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="font-bold text-slate-700">Sales Summary</div>
+                            <div class="flex justify-between pl-2"><span>Total Sales (${totalQty}):</span><span class="font-bold">₱${totalSales.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2"><span>Total Net:</span><span class="font-bold">₱${totalNet.toFixed(2)}</span></div>
+                        </div>
+
+                        <div class="space-y-1 pb-2 border-b border-slate-300">
+                            <div class="font-bold text-slate-700">Discount Summary</div>
+                            <div class="flex justify-between pl-2"><span>Total Discounts:</span><span class="font-bold">₱0.00</span></div>
+                        </div>
+
+                        <div class="space-y-1 text-slate-900 font-bold">
+                            <div class="text-slate-700 font-bold mb-1">Cash Drawer Summary</div>
+                            <div class="flex justify-between pl-2"><span>Opening Amount:</span><span>₱${shiftData.floatAmount.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2"><span>Cash Sales:</span><span>₱${cashSales.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2 pt-1 border-t border-slate-200"><span>Expected Drawer:</span><span>₱${expectedCash.toFixed(2)}</span></div>
+                            <div class="flex justify-between pl-2 items-center pt-1">
+                                <span>Actual Drawer:</span>
+                                <input type="number" id="actual-drawer-input" value="${expectedCash.toFixed(2)}" class="w-28 bg-white border border-slate-300 rounded px-2 py-1 text-right text-xs font-bold" oninput="calculateOverShort(${expectedCash})">
+                            </div>
+                            <div class="flex justify-between pl-2 pt-1 text-emerald-700" id="over-short-display"><span>Over/Short:</span><span>₱0.00</span></div>
+                        </div>
+                    </div>
+                `;
+                actionBtn.innerText = "Confirm Close Shift";
+                actionBtn.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 rounded-xl text-base shadow-lg transition";
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function calculateOverShort(expected) {
+            const actual = parseFloat(document.getElementById('actual-drawer-input').value) || 0;
+            const diff = actual - expected;
+            const el = document.getElementById('over-short-display');
+            if (diff >= 0) {
+                el.innerHTML = `<span>Over/Short:</span><span class="text-emerald-600">+₱${diff.toFixed(2)} (Over)</span>`;
+            } else {
+                el.innerHTML = `<span>Over/Short:</span><span class="text-rose-600">-₱${Math.abs(diff).toFixed(2)} (Short)</span>`;
+            }
+        }
+
+        function printShiftReport() {
+            const completedOrders = savedOrders.filter(o => o.status === 'Completed');
+            let cashSales = 0, cashQty = 0, cardSales = 0, cardQty = 0, gcashSales = 0, gcashQty = 0;
+
+            completedOrders.forEach(o => {
+                if (o.paymentMethod === 'Cash') { cashSales += o.total; cashQty++; }
+                else if (o.paymentMethod === 'Card') { cardSales += o.total; cardQty++; }
+                else if (o.paymentMethod === 'GCash') { gcashSales += o.total; gcashQty++; }
+            });
+
+            const totalSales = cashSales + cardSales + gcashSales;
+            const totalQty = cashQty + cardQty + gcashQty;
+            const cashNet = cashSales / 1.12;
+            const cardNet = cardSales / 1.12;
+            const totalNet = totalSales / 1.12;
+            const expectedCash = shiftData.floatAmount + cashSales;
+            const actual = parseFloat(document.getElementById('actual-drawer-input')?.value || expectedCash);
+            const diff = actual - expectedCash;
+            const closeTimeStr = new Date().toLocaleString();
+
+            const paper = document.getElementById('shift-receipt-paper');
+            paper.innerHTML = `
+                <div class="text-center pb-2">
+                    <div class="font-bold text-xs">MIZZY'S BISTRO</div>
+                    <div>SALES SHIFT REPORT</div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div>Shift Open: ${shiftData.startDateTimeStr}</div>
+                    <div>Shift Close: ${closeTimeStr}</div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div class="font-bold">CASH SUMMARY</div>
+                    <div class="flex justify-between pl-2"><span>Sales (${cashQty}):</span><span>₱${cashSales.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Net (VAT Inc):</span><span>₱${cashNet.toFixed(2)}</span></div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div class="font-bold">CARD SUMMARY</div>
+                    <div class="flex justify-between pl-2"><span>Sales (${cardQty}):</span><span>₱${cardSales.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Net (VAT Inc):</span><span>₱${cardNet.toFixed(2)}</span></div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div class="font-bold">GCASH SUMMARY</div>
+                    <div class="flex justify-between pl-2"><span>Sales (${gcashQty}):</span><span>₱${gcashSales.toFixed(2)}</span></div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div class="font-bold">TOTAL PERFORMANCE</div>
+                    <div class="flex justify-between pl-2"><span>Total Sales (${totalQty}):</span><span>₱${totalSales.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Total Net:</span><span>₱${totalNet.toFixed(2)}</span></div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5 font-bold">
+                    <div>CASH DRAWER DRAWER</div>
+                    <div class="flex justify-between pl-2"><span>Opening Float:</span><span>₱${shiftData.floatAmount.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Cash Sales:</span><span>₱${cashSales.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Expected Drawer:</span><span>₱${expectedCash.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Actual Drawer:</span><span>₱${actual.toFixed(2)}</span></div>
+                    <div class="flex justify-between pl-2"><span>Over/Short:</span><span>₱${diff.toFixed(2)}</span></div>
+                </div>
+                <div class="text-center pt-2 text-[10px]">
+                    <div>*** END OF SHIFT REPORT ***</div>
+                </div>
+            `;
+            window.print();
+        }
+
+        function toggleShift() {
+            if (!isShiftOpen) {
+                const floatVal = parseFloat(document.getElementById('shift-float-amount').value) || 0;
+                shiftData = { 
+                    floatAmount: floatVal, 
+                    startTime: Date.now(),
+                    startDateTimeStr: new Date().toLocaleString()
+                };
+                isShiftOpen = true;
+                alert("Shift opened successfully!");
+            } else {
+                isShiftOpen = false;
+                alert("Shift closed successfully. Summary recorded.");
+            }
+            saveStateToStorage();
+            updateShiftUI();
+            closeModal('modal-shift');
+        }
+
+        function updateShiftUI() {
+            const dot = document.getElementById('shift-status-dot');
+            const text = document.getElementById('shift-status-text');
+            const btnLabel = document.getElementById('shift-btn-label');
+            const shiftNavBtn = document.getElementById('tab-shift');
+
+            if (isShiftOpen) {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse";
+                text.innerHTML = "Register #1 &bull; Shift Open";
+                btnLabel.innerText = "Shift";
+                shiftNavBtn.className = "px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-emerald-300 hover:text-emerald-100 bg-emerald-500/10 border border-emerald-500/30";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-rose-400 inline-block";
+                text.innerHTML = "Register #1 &bull; Shift Closed";
+                btnLabel.innerText = "Shift";
+                shiftNavBtn.className = "px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 text-amber-300 hover:text-amber-100 bg-amber-500/10 border border-amber-500/30";
+            }
+        }
+
+        function populateTableDropdown(elementId = 'prompt-table-number') {
+            const tableSelect = document.getElementById(elementId);
+            if (!tableSelect) return;
+            const currentSelected = tableSelect.value;
+            
+            const occupiedTables = new Set();
+            savedOrders.forEach(o => {
+                if (o.status === 'Pending') {
+                    occupiedTables.add(o.tableNum);
+                }
+            });
+
+            let html = '';
+            for (let i = 1; i <= 10; i++) {
+                const tableName = `Table ${i}`;
+                const isOccupied = occupiedTables.has(tableName);
+                
+                if (isOccupied && tableName !== currentSelected && !editingOrderId) {
+                    html += `<option value="${tableName}" disabled>${tableName} (Occupied - Unpaid)</option>`;
+                } else {
+                    html += `<option value="${tableName}">${tableName}</option>`;
+                }
+            }
+            tableSelect.innerHTML = html;
+            if (currentSelected && !tableSelect.querySelector(`option[value="${currentSelected}"]`)?.disabled) {
+                tableSelect.value = currentSelected;
+            }
+        }
+
+        function renderCategories() {
+            const bar = document.getElementById('category-bar');
+            bar.innerHTML = categories.map(cat => `
+                <button onclick="selectCategory('${cat}')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition shadow-sm ${selectedCategory === cat ? 'bg-slate-900 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            renderCategories();
+            renderMenuGrid();
+        }
+
+        function renderMenuGrid(searchQuery = '') {
+            const grid = document.getElementById('menu-grid');
+            let filtered = initialMenu;
+
+            if (selectedCategory !== "ALL") {
+                filtered = filtered.filter(item => item.category === selectedCategory);
+            }
+            if (searchQuery.trim() !== "") {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(item => item.name.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q));
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400">
+                        <i class="fa-solid fa-utensils text-3xl mb-2"></i>
+                        <p class="text-sm">No menu items found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                const invItem = inventoryData.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+                const isSoldOut = invItem && invItem.status === 'Sold Out';
+
+                return `
+                    <div onclick="${isSoldOut ? '' : `handleMenuClick(${item.id})`}" class="bg-white border ${isSoldOut ? 'border-slate-300 opacity-60 bg-slate-50 cursor-not-allowed' : 'border-slate-200/85 hover:border-emerald-500 cursor-pointer'} rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group relative">
+                        ${isSoldOut ? '<span class="absolute top-2 right-2 bg-rose-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow">SOLD OUT</span>' : ''}
+                        <div>
+                            <div class="flex items-start justify-between gap-1.5 mb-1">
+                                <h3 class="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-600 transition line-clamp-2">${item.name}</h3>
+                                ${!isSoldOut && item.modType !== 'none' ? '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">Options</span>' : ''}
+                            </div>
+                            <p class="text-[11px] text-slate-500 line-clamp-2 mb-3">${item.desc}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+                            <span class="font-extrabold ${isSoldOut ? 'text-slate-400' : 'text-emerald-600'} text-sm">₱${item.price}</span>
+                            <span class="w-7 h-7 ${isSoldOut ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white'} rounded-xl flex items-center justify-center text-xs transition">
+                                <i class="fa-solid ${isSoldOut ? 'fa-ban' : 'fa-plus'}"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterMenuSearch(val) {
+            renderMenuGrid(val);
+        }
+
+        function handleMenuClick(id) {
+            const item = initialMenu.find(i => i.id === id);
+            if (!item) return;
+
+            const invItem = inventoryData.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+            if (invItem && invItem.status === 'Sold Out') {
+                alert(`${item.name} is currently sold out and cannot be ordered.`);
+                return;
+            }
+
+            if (item.modType === 'none') {
+                addToCart(item, '', item.price);
+            } else {
+                activeModifierItem = item;
+                openModifierModal(item);
+            }
+        }
+
+        function openModifierModal(item) {
+            const modalBody = document.getElementById('modifier-modal-body');
+            document.getElementById('modifier-modal-title').innerText = `Select Options for ${item.name}`;
+            
+            let html = '';
+            if (item.modType === 'sisig') {
+                html = `
+                    <div class="space-y-2.5">
+                        <button onclick="applyModifier('${item.name}', 'Regular', ${item.price})" class="w-full p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                            <span class="font-bold text-xs text-slate-900">Regular Sisig</span>
+                            <span class="text-xs font-semibold text-emerald-600">₱${item.price}</span>
+                        </button>
+                        <button onclick="applyModifier('${item.name}', 'With Egg', ${item.price + 30})" class="w-full p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                            <span class="font-bold text-xs text-slate-900">With Egg (+₱30)</span>
+                            <span class="text-xs font-semibold text-emerald-600">₱${item.price + 30}</span>
+                        </button>
+                    </div>
+                `;
+            } else if (item.modType === 'breakfast') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="text-xs text-slate-500">Select multiple options as needed:</p>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                                <input type="checkbox" id="bf-opt-sunny" value="Sunny-side-up" class="w-4 h-4 text-emerald-600 rounded">
+                                <span class="text-xs font-bold text-slate-800">Sunny-side-up</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                                <input type="checkbox" id="bf-opt-scrambled" value="Scrambled" class="w-4 h-4 text-emerald-600 rounded">
+                                <span class="text-xs font-bold text-slate-800">Scrambled</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                                <input type="checkbox" id="bf-opt-toasted" value="Toasted Bread" class="w-4 h-4 text-emerald-600 rounded">
+                                <span class="text-xs font-bold text-slate-800">Toasted Bread</span>
+                            </label>
+                        </div>
+                        <button onclick="applyBreakfastModifier(${item.price})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition mt-2">Confirm Breakfast Options</button>
+                    </div>
+                `;
+            } else if (item.modType === 'coffee' || item.modType === 'matcha') {
+                html = `
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="applyModifier('${item.name}', 'Hot', ${item.price})" class="p-4 bg-orange-50/50 border-2 border-orange-200 hover:border-orange-500 rounded-2xl text-center transition shadow-sm">
+                            <i class="fa-solid fa-mug-hot text-2xl text-orange-500 mb-2"></i>
+                            <span class="block font-bold text-slate-900 text-xs">HOT</span>
+                            <span class="text-xs text-slate-500 font-medium">₱${item.price}</span>
+                        </button>
+                        <button onclick="applyModifier('${item.name}', 'Cold', ${item.modType === 'coffee' ? item.price + 20 : item.price})" class="p-4 bg-sky-50/50 border-2 border-sky-200 hover:border-sky-500 rounded-2xl text-center transition shadow-sm">
+                            <i class="fa-solid fa-glass-water text-2xl text-sky-500 mb-2"></i>
+                            <span class="block font-bold text-slate-900 text-xs">COLD</span>
+                            <span class="text-xs text-slate-500 font-medium">₱${item.modType === 'coffee' ? item.price + 20 : item.price}</span>
+                        </button>
+                    </div>
+                `;
+            } else if (item.modType === 'sanmig') {
+                const variants = [
+                    { name: "San Miguel Pale Pilsen", price: 100 },
+                    { name: "San Miguel Light", price: 100 },
+                    { name: "San Miguel Apple Flavored", price: 100 },
+                    { name: "San Miguel Zero", price: 110 },
+                    { name: "San Miguel Cerveza Negra", price: 125 }
+                ];
+                html = `
+                    <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
+                        ${variants.map(v => `
+                            <button onclick="applyModifier('${v.name}', '', ${v.price})" class="p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                                <span class="font-bold text-xs text-slate-900">${v.name}</span>
+                                <span class="text-xs font-semibold text-emerald-600">₱${v.price}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (item.modType === 'wings') {
+                const flavors = ["Garlic Parmesan", "Buffalo"];
+                html = `
+                    <div class="space-y-2">
+                        ${flavors.map(f => `
+                            <button onclick="applyModifier('Chicken Wings', '${f}', ${item.price})" class="w-full p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                                <span class="font-bold text-xs text-slate-900">${f}</span>
+                                <span class="text-xs font-semibold text-emerald-600">₱${item.price}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (item.modType === 'fries') {
+                const flavors = ["Plain", "Sour Cream", "BBQ"];
+                html = `
+                    <div class="space-y-2">
+                        ${flavors.map(f => `
+                            <button onclick="applyModifier('French Fries', '${f}', ${f === 'Plain' ? 150 : 175})" class="w-full p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                                <span class="font-bold text-xs text-slate-900">${f}</span>
+                                <span class="text-xs font-semibold text-emerald-600">₱${f === 'Plain' ? 150 : 175}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (item.modType === 'soda') {
+                const cans = ["Coke in Can", "Sprite in Can", "Royal in Can"];
+                html = `
+                    <div class="space-y-2">
+                        ${cans.map(c => `
+                            <button onclick="applyModifier('${c}', '', ${item.price})" class="w-full p-3.5 bg-slate-50 border border-slate-200 hover:border-emerald-500 rounded-xl text-left flex justify-between items-center transition shadow-sm">
+                                <span class="font-bold text-xs text-slate-900">${c}</span>
+                                <span class="text-xs font-semibold text-emerald-600">₱${item.price}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (item.modType === 'steak') {
+                html = `
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Doneness</label>
+                            <select id="steak-doneness" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold">
+                                <option>Medium Rare</option>
+                                <option>Medium</option>
+                                <option>Medium Well</option>
+                                <option>Well Done</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Side Dish</label>
+                            <select id="steak-side" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold">
+                                <option>Rice</option>
+                                <option>Mashed Potatoes</option>
+                            </select>
+                        </div>
+                        <button onclick="applySteakModifier(${item.price})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition mt-2">Confirm Steak Options</button>
+                    </div>
+                `;
+            }
+
+            modalBody.innerHTML = html;
+            document.getElementById('modal-modifier').classList.remove('hidden');
+        }
+
+        function applyModifier(itemName, modifierDetail, price) {
+            const modLabel = modifierDetail ? ` (${modifierDetail})` : '';
+            const fullItem = {
+                id: activeModifierItem.id,
+                name: itemName + modLabel,
+                price: price
+            };
+            addToCart(fullItem, modifierDetail, price);
+            closeModal('modal-modifier');
+            activeModifierItem = null;
+        }
+
+        function applyBreakfastModifier(price) {
+            const selectedOpts = [];
+            if (document.getElementById('bf-opt-sunny').checked) selectedOpts.push("Sunny-side-up");
+            if (document.getElementById('bf-opt-scrambled').checked) selectedOpts.push("Scrambled");
+            if (document.getElementById('bf-opt-toasted').checked) selectedOpts.push("Toasted Bread");
+
+            const details = selectedOpts.length > 0 ? selectedOpts.join(', ') : 'Standard';
+            const fullItem = {
+                id: activeModifierItem.id,
+                name: `${activeModifierItem.name} (${details})`,
+                price: price
+            };
+            addToCart(fullItem, details, price);
+            closeModal('modal-modifier');
+            activeModifierItem = null;
+        }
+
+        function applySteakModifier(price) {
+            const doneness = document.getElementById('steak-doneness').value;
+            const side = document.getElementById('steak-side').value;
+            const details = `${doneness}, Side: ${side}`;
+            const fullItem = {
+                id: activeModifierItem.id,
+                name: `Prime USDA Ribeye Steak (${details})`,
+                price: price
+            };
+            addToCart(fullItem, details, price);
+            closeModal('modal-modifier');
+            activeModifierItem = null;
+        }
+
+        function addToCart(item, modifier, price) {
+            const modKey = modifier ? `-${modifier}` : '-std';
+            const cartItemId = `${item.id}-${modKey}`;
+            
+            const existing = currentCart.find(c => c.cartItemId === cartItemId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                currentCart.push({
+                    cartItemId,
+                    id: item.id,
+                    name: item.name,
+                    price: price,
+                    qty: 1
+                });
+            }
+            updateCartDisplay();
+        }
+
+        function updateCartQty(cartItemId, change) {
+            const idx = currentCart.findIndex(c => c.cartItemId === cartItemId);
+            if (idx !== -1) {
+                currentCart[idx].qty += change;
+                if (currentCart[idx].qty <= 0) {
+                    currentCart.splice(idx, 1);
+                }
+            }
+            updateCartDisplay();
+        }
+
+        function clearCart() {
+            currentCart = [];
+            editingOrderId = null;
+            document.getElementById('cart-panel-title').innerText = "Current Order";
+            document.getElementById('btn-save-order').innerHTML = `<i class="fa-solid fa-bookmark"></i> Save Order`;
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            saveStateToStorage();
+            const container = document.getElementById('cart-items');
+            if (currentCart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-slate-400">
+                        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-300">
+                            <i class="fa-solid fa-basket-shopping text-2xl"></i>
+                        </div>
+                        <p class="text-sm font-medium">Your order is empty</p>
+                        <p class="text-xs text-slate-400 mt-1">Tap menu items to add to order</p>
+                    </div>
+                `;
+                document.getElementById('cart-vat').innerText = '₱0.00';
+                document.getElementById('cart-sc').innerText = '₱0.00';
+                document.getElementById('cart-total').innerText = '₱0.00';
+                return;
+            }
+
+            container.innerHTML = currentCart.map(item => `
+                <div class="py-3 flex items-center justify-between gap-2">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-xs text-slate-900">${item.name}</h4>
+                        <p class="text-xs text-emerald-600 font-bold mt-0.5">₱${item.price} x ${item.qty} = ₱${item.price * item.qty}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                        <button onclick="updateCartQty('${item.cartItemId}', -1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-xs font-bold transition shadow-sm"><i class="fa-solid fa-minus"></i></button>
+                        <span class="w-6 text-center text-xs font-bold">${item.qty}</span>
+                        <button onclick="updateCartQty('${item.cartItemId}', 1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-xs font-bold transition shadow-sm"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateCartTotals();
+        }
+
+        function updateCartTotals() {
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const vat = total * 0.12; 
+            const sc = total * 0.10;  
+
+            document.getElementById('cart-vat').innerText = `₱${vat.toFixed(2)}`;
+            document.getElementById('cart-sc').innerText = `₱${sc.toFixed(2)}`;
+            document.getElementById('cart-total').innerText = `₱${total.toFixed(2)}`;
+            currentCheckoutTotal = total;
+        }
+
+        function initiateSaveOrder() {
+            if (!isShiftOpen) {
+                alert("Cannot process orders. Please open your shift first.");
+                openShiftModal();
+                return;
+            }
+            if (currentCart.length === 0) {
+                alert("Cannot save an empty order.");
+                return;
+            }
+
+            document.getElementById('prompt-cust-number').value = `Customer ${customerCounter}`;
+            populateTableDropdown('prompt-table-number');
+            document.getElementById('modal-order-details').classList.remove('hidden');
+        }
+
+        function confirmSaveOrder() {
+            const custNum = document.getElementById('prompt-cust-number').value || `Customer ${customerCounter}`;
+            const tableNum = document.getElementById('prompt-table-number').value || 'Table 1';
+            
+            const isOccupied = savedOrders.some(o => o.status === 'Pending' && o.tableNum === tableNum && (!editingOrderId || o.id !== editingOrderId));
+            if (isOccupied) {
+                alert(`${tableNum} is currently occupied with an unpaid order. Please select an available table.`);
+                return;
+            }
+
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const vat = total * 0.12;
+            const sc = total * 0.10;
+
+            if (editingOrderId) {
+                const existingOrder = savedOrders.find(o => o.id === editingOrderId);
+                if (existingOrder) {
+                    existingOrder.custNum = custNum;
+                    existingOrder.tableNum = tableNum;
+                    existingOrder.items = [...currentCart];
+                    existingOrder.total = total;
+                    existingOrder.vat = vat;
+                    existingOrder.sc = sc;
+                }
+                alert(`Order ${editingOrderId} updated successfully!`);
+                editingOrderId = null;
+                document.getElementById('cart-panel-title').innerText = "Current Order";
+                document.getElementById('btn-save-order').innerHTML = `<i class="fa-solid fa-bookmark"></i> Save Order`;
+            } else {
+                const newOrder = {
+                    id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+                    custNum,
+                    tableNum,
+                    items: [...currentCart],
+                    vat,
+                    sc,
+                    total,
+                    status: 'Pending',
+                    paymentMethod: 'Unpaid',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    startTime: Date.now(),
+                    elapsedSeconds: 0,
+                    isCompleted: false
+                };
+                savedOrders.unshift(newOrder);
+                alert("Order saved successfully and transferred to Orders tab!");
+                
+                customerCounter++;
+            }
+
+            currentCart = [];
+            updateCartDisplay();
+            updateOrderBadge();
+            renderOrdersList();
+            closeModal('modal-order-details');
+        }
+
+        function editOrderFromTab(orderId) {
+            const order = savedOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            editingOrderId = order.id;
+            currentCart = JSON.parse(JSON.stringify(order.items));
+
+            document.getElementById('cart-panel-title').innerText = `Editing ${order.id}`;
+            document.getElementById('btn-save-order').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Update Order`;
+            
+            switchTab('register');
+            updateCartDisplay();
+        }
+
+        function updateOrderBadge() {
+            const pendingCount = savedOrders.filter(o => o.status === 'Pending').length;
+            document.getElementById('order-badge').innerText = pendingCount;
+        }
+
+        function updateOrderTimers() {
+            let needsRerender = false;
+            savedOrders.forEach(order => {
+                if (!order.isCompleted) {
+                    order.elapsedSeconds = Math.floor((Date.now() - order.startTime) / 1000);
+                    needsRerender = true;
+                }
+            });
+            if (needsRerender && document.getElementById('view-orders') && !document.getElementById('view-orders').classList.contains('hidden')) {
+                updateTimerDisplaysOnly();
+            }
+        }
+
+        function updateTimerDisplaysOnly() {
+            savedOrders.forEach(order => {
+                const el = document.getElementById(`timer-${order.id}`);
+                if (el) {
+                    el.innerText = formatTime(order.elapsedSeconds);
+                }
+            });
+        }
+
+        function formatTime(totalSeconds) {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function renderOrdersList() {
+            saveStateToStorage();
+            const container = document.getElementById('orders-list');
+            let filtered = savedOrders;
+            if (orderFilterStatus !== 'all') {
+                filtered = savedOrders.filter(o => o.status === orderFilterStatus);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400">
+                        <i class="fa-solid fa-receipt text-3xl mb-2"></i>
+                        <p class="text-sm">No orders found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4.5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                            <div>
+                                <span class="font-bold text-slate-900 text-sm">${order.id}</span>
+                                <span class="text-xs text-slate-400 ml-2">${order.timestamp}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-700 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-emerald-600"></i> <span id="timer-${order.id}">${formatTime(order.elapsedSeconds)}</span>
+                                </span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                    ${order.status}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-600 mb-3 bg-slate-50 p-2.5 rounded-xl">
+                            <span><i class="fa-solid fa-user text-slate-400 mr-1"></i> ${order.custNum}</span>
+                            <span><i class="fa-solid fa-chair text-slate-400 mr-1"></i> ${order.tableNum}</span>
+                            <span><i class="fa-solid fa-wallet text-slate-400 mr-1"></i> ${order.paymentMethod}</span>
+                        </div>
+                        <div class="space-y-1.5 mb-4 max-h-36 overflow-y-auto">
+                            ${order.items.map(i => `
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-700">${i.qty}x${i.name}</span>
+                                    <span class="font-semibold text-slate-900">₱${i.price * i.qty}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase text-slate-400 block font-bold">Total</span>
+                            <span class="font-extrabold text-emerald-600 text-base">₱${order.total.toFixed(2)}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            ${order.status === 'Pending' ? `
+                                <button onclick="editOrderFromTab('${order.id}')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition" title="Edit Order">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="promptChargeOrder('${order.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cash-register"></i> Charge
+                                </button>
+                            ` : `
+                                <button onclick="previewOrderReceipt('${order.id}')" class="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-print"></i> Receipt
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterOrders(status) {
+            orderFilterStatus = status;
+            ['all', 'Pending', 'Completed'].forEach(s => {
+                const btn = document.getElementById(`filter-btn-${s.toLowerCase()}`);
+                if (btn) {
+                    btn.className = s.toLowerCase() === status.toLowerCase() ? "px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-sm transition" : "px-3.5 py-1.5 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-semibold transition";
+                }
+            });
+            renderOrdersList();
+        }
+
+        let chargingOrderId = null;
+        function promptChargeOrder(orderId) {
+            if (!isShiftOpen) {
+                alert("Cannot process transactions. Please open your shift first.");
+                openShiftModal();
+                return;
+            }
+            const order = savedOrders.find(o => o.id === orderId);
+            if (!order) return;
+            chargingOrderId = order.id;
+            currentCheckoutTotal = order.total;
+            document.getElementById('checkout-amount').innerText = `₱${currentCheckoutTotal.toFixed(2)}`;
+            setPaymentMethod('Cash');
+            document.getElementById('cash-tendered').value = currentCheckoutTotal;
+            generateSuggestedAmounts(currentCheckoutTotal);
+            calculateChange();
+            document.getElementById('modal-checkout').classList.remove('hidden');
+        }
+
+        function openCheckoutModal(method) {
+            if (!isShiftOpen) {
+                alert("Cannot process transactions. Please open your shift first.");
+                openShiftModal();
+                return;
+            }
+            if (currentCart.length === 0) {
+                alert("Cart is empty. Add items to checkout.");
+                return;
+            }
+            
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const vat = total * 0.12;
+            const sc = total * 0.10;
+
+            const newOrder = {
+                id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+                custNum: `Customer ${customerCounter}`,
+                tableNum: 'Takeout / Direct',
+                items: [...currentCart],
+                vat,
+                sc,
+                total,
+                status: 'Completed',
+                paymentMethod: method,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                startTime: Date.now(),
+                elapsedSeconds: 0,
+                isCompleted: true
+            };
+            
+            customerCounter++;
+            savedOrders.unshift(newOrder);
+            chargingOrderId = newOrder.id;
+            currentCheckoutTotal = total;
+
+            currentCart = [];
+            updateCartDisplay();
+            updateOrderBadge();
+
+            document.getElementById('checkout-amount').innerText = `₱${currentCheckoutTotal.toFixed(2)}`;
+            setPaymentMethod(method);
+            document.getElementById('cash-tendered').value = currentCheckoutTotal;
+            generateSuggestedAmounts(currentCheckoutTotal);
+            calculateChange();
+            document.getElementById('modal-checkout').classList.remove('hidden');
+        }
+
+        function generateSuggestedAmounts(total) {
+            const container = document.getElementById('suggested-amounts');
+            const exact = total;
+            const round100 = Math.ceil(total / 100) * 100;
+            const round500 = Math.ceil(total / 500) * 500;
+            const round1000 = Math.ceil(total / 1000) * 1000;
+
+            let suggestions = [exact, round100];
+            if (round500 > round100) suggestions.push(round500);
+            if (round1000 > round500) suggestions.push(round1000);
+            
+            suggestions = [...new Set(suggestions)];
+
+            container.innerHTML = suggestions.map(amt => `
+                <button onclick="setTenderedAmount(${amt})" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2 px-1 rounded-lg transition shadow-sm border border-slate-200">
+                    ₱${amt}
+                </button>
+            `).join('');
+        }
+
+        function setTenderedAmount(amount) {
+            document.getElementById('cash-tendered').value = amount;
+            calculateChange();
+        }
+
+        function setPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            ['Cash', 'GCash', 'Card'].forEach(m => {
+                const btn = document.getElementById(`pm-${m}`);
+                btn.className = m === method ? "p-3.5 border-2 border-emerald-600 bg-emerald-50 text-emerald-900 rounded-2xl text-xs font-bold text-center transition shadow-sm" : "p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl text-xs font-bold text-center transition shadow-sm";
+            });
+            document.getElementById('cash-payment-section').classList.toggle('hidden', method !== 'Cash');
+        }
+
+        function calculateChange() {
+            const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
+            const change = tendered - currentCheckoutTotal;
+            document.getElementById('cash-change').innerText = `₱${change >= 0 ? change.toFixed(2) : '0.00'}`;
+        }
+
+        function processCheckout() {
+            if (chargingOrderId) {
+                const order = savedOrders.find(o => o.id === chargingOrderId);
+                if (order) {
+                    order.status = 'Completed';
+                    order.paymentMethod = selectedPaymentMethod;
+                    order.isCompleted = true; 
+                    receiptDataToPrint = order;
+                }
+                chargingOrderId = null;
+            }
+
+            updateOrderBadge();
+            renderOrdersList();
+
+            closeModal('modal-checkout');
+            openReceiptModal();
+        }
+
+        function previewOrderReceipt(orderId) {
+            const order = savedOrders.find(o => o.id === orderId);
+            if (order) {
+                receiptDataToPrint = order;
+                openReceiptModal();
+            }
+        }
+
+        function openReceiptModal() {
+            if (!receiptDataToPrint) return;
+            const order = receiptDataToPrint;
+            const paper = document.getElementById('receipt-paper');
+            
+            paper.innerHTML = `
+                <div class="text-center pb-2">
+                    <div class="font-bold text-xs">MIZZY'S BISTRO</div>
+                    <div>Metropolitan Manila, Philippines</div>
+                    <div>VAT Reg TIN: 000-123-456-000</div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400">
+                    <div>ORDER #: ${order.id}</div>
+                    <div>DATE: ${new Date().toLocaleDateString()} ${order.timestamp}</div>
+                    <div>CUST: ${order.custNum} | TABLE: ${order.tableNum}</div>
+                    <div>PAYMENT: ${order.paymentMethod}</div>
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-1">
+                    <div class="flex justify-between font-bold"><span>ITEM</span><span>QTY AMT</span></div>
+                    ${order.items.map(i => `
+                        <div class="flex justify-between items-start">
+                            <span class="truncate pr-1 w-[48mm]">${i.name}</span>
+                            <span class="shrink-0 text-right">${i.qty} ₱${i.price * i.qty}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="py-1 border-b border-dashed border-slate-400 space-y-0.5">
+                    <div class="flex justify-between"><span>VAT (12% Included)</span><span>₱${order.vat.toFixed(2)}</span></div>
+                    <div class="flex justify-between"><span>Service Charge (10%)</span><span>₱${order.sc.toFixed(2)}</span></div>
+                    <div class="flex justify-between font-bold text-xs pt-0.5"><span>TOTAL DUE</span><span>₱${order.total.toFixed(2)}</span></div>
+                </div>
+                <div class="text-center pt-2 text-[10px]">
+                    <div>THANK YOU FOR DINING WITH US!</div>
+                    <div>PLEASE COME AGAIN</div>
+                </div>
+            `;
+            document.getElementById('modal-receipt').classList.remove('hidden');
+        }
+
+        function openPrinterModal() {
+            if (savedOrders.length > 0) {
+                receiptDataToPrint = savedOrders[0];
+                openReceiptModal();
+            } else {
+                alert("No recent orders to print. Complete an order first.");
+            }
+        }
+
+        function executeDevicePrint() {
+            window.print();
+            closeModal('modal-receipt');
+        }
+
+        function renderManageTable(searchQuery = '', catFilter = '') {
+            saveStateToStorage();
+            const tbody = document.getElementById('manage-table-body');
+            let filtered = initialMenu;
+
+            if (catFilter) filtered = filtered.filter(i => i.category === catFilter);
+            if (searchQuery.trim() !== '') {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(i => i.name.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q));
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No items found</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => `
+                <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
+                    <td class="p-4 font-semibold text-slate-900">${item.name}</td>
+                    <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">${item.category}</span></td>
+                    <td class="p-4 font-bold text-emerald-600">₱${item.price}</td>
+                    <td class="p-4 text-slate-500 truncate max-w-xs">${item.desc}</td>
+                    <td class="p-4 text-right space-x-1.5">
+                        <button onclick="editMenuItem(${item.id})" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition shadow-sm"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteMenuItem(${item.id})" class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs transition shadow-sm"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterManageMenu() {
+            renderManageTable(document.getElementById('manage-search').value, document.getElementById('manage-cat-filter').value);
+        }
+
+        // ================= INVENTORY TAB LOGIC =================
+        function renderInventoryTable(searchQuery = '') {
+            saveStateToStorage();
+            const tbody = document.getElementById('inventory-table-body');
+            let filtered = inventoryData;
+
+            if (searchQuery.trim() !== '') {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(i => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q));
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No inventory items found</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => `
+                <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
+                    <td class="p-4 font-semibold text-slate-900">${item.name}</td>
+                    <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">${item.category}</span></td>
+                    <td class="p-4">
+                        <button onclick="toggleStockStatus(${item.id})" class="px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm ${item.status === 'In Stock' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-rose-100 text-rose-800 hover:bg-rose-200'}">
+                            <i class="fa-solid ${item.status === 'In Stock' ? 'fa-check' : 'fa-xmark'} mr-1"></i> ${item.status}
+                        </button>
+                    </td>
+                    <td class="p-4 text-slate-700 font-medium">${item.level}</td>
+                    <td class="p-4 text-right space-x-1.5">
+                        <button onclick="openInventoryItemModal(${item.id})" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition shadow-sm" title="Edit Inventory"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteInventoryItem(${item.id})" class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs transition shadow-sm" title="Delete Inventory"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterInventoryList(val) {
+            renderInventoryTable(val);
+        }
+
+        function toggleStockStatus(id) {
+            const item = inventoryData.find(i => i.id === id);
+            if (item) {
+                item.status = item.status === 'In Stock' ? 'Sold Out' : 'In Stock';
+                renderInventoryTable();
+                renderMenuGrid();
+            }
+        }
+
+        function openInventoryItemModal(itemId = null) {
+            const validCats = categories.filter(c => c !== "ALL");
+            document.getElementById('edit-inv-category').innerHTML = validCats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            document.getElementById('edit-inv-id').value = '';
+            document.getElementById('edit-inv-name').value = '';
+            document.getElementById('edit-inv-status').value = 'In Stock';
+            document.getElementById('edit-inv-level').value = '50 units';
+            document.getElementById('inventory-modal-title').innerText = 'Add Inventory Item';
+
+            if (itemId !== null) {
+                const item = inventoryData.find(i => i.id === itemId);
+                if (item) {
+                    document.getElementById('edit-inv-id').value = item.id;
+                    document.getElementById('edit-inv-name').value = item.name;
+                    document.getElementById('edit-inv-category').value = item.category;
+                    document.getElementById('edit-inv-status').value = item.status;
+                    document.getElementById('edit-inv-level').value = item.level;
+                    document.getElementById('inventory-modal-title').innerText = 'Edit Inventory Item';
+                }
+            }
+            document.getElementById('modal-inventory-edit').classList.remove('hidden');
+        }
+
+        function saveInventoryItem() {
+            const id = document.getElementById('edit-inv-id').value;
+            const name = document.getElementById('edit-inv-name').value;
+            const category = document.getElementById('edit-inv-category').value;
+            const status = document.getElementById('edit-inv-status').value;
+            const level = document.getElementById('edit-inv-level').value;
+
+            if (!name) {
+                alert("Please provide valid item name.");
+                return;
+            }
+
+            if (id) {
+                const item = inventoryData.find(i => i.id == id);
+                if (item) {
+                    item.name = name;
+                    item.category = category;
+                    item.status = status;
+                    item.level = level;
+                }
+            } else {
+                const newId = inventoryData.length > 0 ? Math.max(...inventoryData.map(i => i.id)) + 1 : 1;
+                inventoryData.push({ id: newId, name, category, status, level });
+            }
+
+            closeModal('modal-inventory-edit');
+            renderInventoryTable();
+            renderMenuGrid();
+            alert("Inventory updated successfully!");
+        }
+
+        function deleteInventoryItem(id) {
+            if (confirm("Are you sure you want to delete this inventory item?")) {
+                inventoryData = inventoryData.filter(i => i.id !== id);
+                renderInventoryTable();
+            }
+        }
+
+        function populateCategoryDropdowns() {
+            const validCats = categories.filter(c => c !== "ALL");
+            document.getElementById('edit-item-category').innerHTML = validCats.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('manage-cat-filter').innerHTML = `<option value="">All Categories</option>` + validCats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function openItemModal(itemId = null) {
+            document.getElementById('edit-item-id').value = '';
+            document.getElementById('edit-item-name').value = '';
+            document.getElementById('edit-item-price').value = '';
+            document.getElementById('edit-item-desc').value = '';
+            document.getElementById('edit-item-mod-type').value = 'none';
+            document.getElementById('item-modal-title').innerText = 'Add / Edit Menu Item';
+
+            if (itemId !== null) {
+                const item = initialMenu.find(i => i.id === itemId);
+                if (item) {
+                    document.getElementById('edit-item-id').value = item.id;
+                    document.getElementById('edit-item-name').value = item.name;
+                    document.getElementById('edit-item-category').value = item.category;
+                    document.getElementById('edit-item-price').value = item.price;
+                    document.getElementById('edit-item-desc').value = item.desc;
+                    document.getElementById('edit-item-mod-type').value = item.modType || 'none';
+                    document.getElementById('item-modal-title').innerText = 'Edit Menu Item';
+                }
+            }
+            document.getElementById('modal-item-edit').classList.remove('hidden');
+        }
+
+        function editMenuItem(id) { openItemModal(id); }
+
+        function saveMenuItem() {
+            const id = document.getElementById('edit-item-id').value;
+            const name = document.getElementById('edit-item-name').value;
+            const category = document.getElementById('edit-item-category').value;
+            const price = parseFloat(document.getElementById('edit-item-price').value);
+            const desc = document.getElementById('edit-item-desc').value;
+            const modType = document.getElementById('edit-item-mod-type').value;
+
+            if (!name || isNaN(price)) {
+                alert("Please provide valid item name and price.");
+                return;
+            }
+
+            if (id) {
+                const item = initialMenu.find(i => i.id == id);
+                if (item) {
+                    item.name = name;
+                    item.category = category;
+                    item.price = price;
+                    item.desc = desc;
+                    item.modType = modType;
+                }
+            } else {
+                const newId = initialMenu.length > 0 ? Math.max(...initialMenu.map(i => i.id)) + 1 : 1;
+                initialMenu.push({ id: newId, name, category, price, desc, modType });
+                
+                // Also automatically add entry into inventory database
+                inventoryData.push({ id: newId, name, category, status: "In Stock", level: "50 units" });
+            }
+
+            closeModal('modal-item-edit');
+            renderMenuGrid();
+            renderManageTable();
+            renderInventoryTable();
+            alert("Menu updated successfully!");
+        }
+
+        function deleteMenuItem(id) {
+            if (confirm("Are you sure you want to delete this menu item?")) {
+                initialMenu = initialMenu.filter(i => i.id !== id);
+                renderMenuGrid();
+                renderManageTable();
+            }
+        }
+
+        function refreshReports() {
+            const completedOrders = savedOrders.filter(o => o.status === 'Completed');
+            const totalSales = completedOrders.reduce((sum, o) => sum + o.total, 0);
+            const totalOrdersCount = completedOrders.length;
+            const avgOrder = totalOrdersCount > 0 ? totalSales / totalOrdersCount : 0;
+
+            document.getElementById('rep-total-sales').innerText = `₱${totalSales.toFixed(2)}`;
+            document.getElementById('rep-total-orders').innerText = totalOrdersCount;
+            document.getElementById('rep-avg-order').innerText = `₱${avgOrder.toFixed(2)}`;
+
+            const catSales = {};
+            completedOrders.forEach(ord => {
+                ord.items.forEach(item => {
+                    const originalItem = initialMenu.find(i => item.name.includes(i.name));
+                    const cat = originalItem ? originalItem.category : 'OTHER';
+                    catSales[cat] = (catSales[cat] || 0) + (item.price * item.qty);
+                });
+            });
+
+            const breakdownContainer = document.getElementById('rep-category-breakdown');
+            const catsKeys = Object.keys(catSales);
+            if (catsKeys.length === 0) {
+                breakdownContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No completed sales data yet</p>`;
+            } else {
+                breakdownContainer.innerHTML = catsKeys.map(cat => {
+                    const amount = catSales[cat];
+                    const percent = totalSales > 0 ? (amount / totalSales) * 100 : 0;
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-700">${cat}</span>
+                                <span class="text-slate-900 font-bold">₱${amount.toFixed(2)} (${percent.toFixed(1)}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full rounded-full" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const txContainer = document.getElementById('rep-recent-transactions');
+            if (completedOrders.length === 0) {
+                txContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No transactions recorded</p>`;
+            } else {
+                txContainer.innerHTML = completedOrders.slice(0, 10).map(ord => `
+                    <div class="flex items-center justify-between py-3 border-b border-slate-100 text-xs">
+                        <div>
+                            <span class="font-bold text-slate-900 block">${ord.id} (${ord.custNum})</span>
+                            <span class="text-[10px] text-slate-400">${ord.timestamp} &bull; ${ord.paymentMethod}</span>
+                        </div>
+                        <span class="font-bold text-emerald-600 text-sm">₱${ord.total.toFixed(2)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
