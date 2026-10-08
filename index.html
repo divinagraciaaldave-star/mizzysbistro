@@ -586,5 +586,184 @@ function net(){const o=navigator.onLine;$('#net').className='dot'+(o?'':' off');
 addEventListener('online',net);addEventListener('offline',net);loadPins();load();net();render();
 if(DISP){setInterval(()=>{load();render()},1000);const beat=()=>{try{bc&&bc.postMessage({t:'hb'})}catch(e){}};beat();setInterval(beat,2000);try{bc&&bc.postMessage({t:'ask'})}catch(e){}}else{setInterval(()=>{updateBadge();if(cdsFull)paintCf()},1500);if(!GUEST)setInterval(checkLock,5000)}
 </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseUrl = "https://dgziewmbrpfhtvzipfir.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnemlld21icnBmaHR2emlwZmlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NjY2NjcsImV4cCI6MjEwNzA0MjY2N30.W7cvY88x9XcOHkBUTQgSGz7StCyAh4AbBCrBz7afBbc";
+  const { createClient } = window.supabase;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const menuList = document.getElementById("menuList");
+  const orderList = document.getElementById("orderList");
+  const orderSummary = document.getElementById("orderSummary");
+  const recentOrders = document.getElementById("recentOrders");
+  const placeOrderButton = document.getElementById("placeOrderButton");
+  
+  let currentOrder = [];
+
+  function formatCurrency(value) {
+    return Number(value || 0).toFixed(2);
+  }
+
+  async function seedSampleMenu() {
+    const { data, error } = await supabase
+      .from("menu_items")
+      .select("*");
+
+    if (!error && (!data || data.length === 0)) {
+      const sampleMenu = [
+        { name: "Burger", price: 120.00, category: "Main", stock: 20, is_available: true },
+        { name: "Fries", price: 60.00, category: "Side", stock: 30, is_available: true },
+        { name: "Coke", price: 40.00, category: "Drinks", stock: 25, is_available: true },
+        { name: "Pizza", price: 180.00, category: "Main", stock: 15, is_available: true }
+      ];
+
+      await supabase.from("menu_items").insert(sampleMenu);
+      loadMenu();
+    } else {
+      loadMenu();
+    }
+  }
+
+  async function loadMenu() {
+    const { data } = await supabase
+      .from("menu_items")
+      .select("*")
+      .order("category", { ascending: true });
+
+    if (!menuList || !data) return;
+    menuList.innerHTML = "";
+
+    data.forEach(item => {
+      const card = document.createElement("div");
+      card.style.cssText = "background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 8px 0; display: flex; justify-content: space-between;";
+      card.innerHTML = `
+        <div>
+          <strong>${item.name}</strong><br>
+          <small>${item.category}</small>
+        </div>
+        <div>
+          <span>₱${formatCurrency(item.price)}</span><br>
+          <button type="button" data-item-id="${item.id}" data-item-name="${item.name}" data-item-price="${item.price}" style="padding: 5px 10px; background: #1f7a8c; color: white; border: none; border-radius: 5px; cursor: pointer;">Add</button>
+        </div>
+      `;
+      menuList.appendChild(card);
+    });
+
+    document.querySelectorAll("[data-item-id]").forEach(button => {
+      button.addEventListener("click", () => {
+        const itemId = button.dataset.itemId;
+        const itemName = button.dataset.itemName;
+        const itemPrice = Number(button.dataset.itemPrice);
+
+        const existing = currentOrder.find(x => x.itemId === itemId);
+        if (existing) {
+          existing.quantity += 1;
+        } else {
+          currentOrder.push({ itemId, itemName, itemPrice, quantity: 1 });
+        }
+
+        renderCurrentOrder();
+      });
+    });
+  }
+
+  function renderCurrentOrder() {
+    if (!orderList || !orderSummary) return;
+    orderList.innerHTML = "";
+    let total = 0;
+
+    currentOrder.forEach(item => {
+      const subtotal = item.itemPrice * item.quantity;
+      total += subtotal;
+      const row = document.createElement("div");
+      row.style.cssText = "display: flex; justify-content: space-between; margin: 8px 0;";
+      row.innerHTML = `<span>${item.itemName} x${item.quantity}</span><span>₱${formatCurrency(subtotal)}</span>`;
+      orderList.appendChild(row);
+    });
+
+    orderSummary.textContent = `Total: ₱${formatCurrency(total)}`;
+  }
+
+  async function placeOrder() {
+    if (currentOrder.length === 0) {
+      alert("Please add at least one item.");
+      return;
+    }
+
+    const total = currentOrder.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
+
+    const { data: orderData, error: orderError } = await supabase
+      .from("orders")
+      .insert([{ total: total, status: "pending" }])
+      .select()
+      .single();
+
+    if (orderError) {
+      alert("Failed to place order.");
+      return;
+    }
+
+    const orderItems = currentOrder.map(item => ({
+      order_id: orderData.id,
+      menu_item_id: item.itemId,
+      item_name: item.itemName,
+      quantity: item.quantity,
+      unit_price: item.itemPrice
+    }));
+
+    await supabase.from("order_items").insert(orderItems);
+    await supabase.from("sales").insert([{ order_id: orderData.id, total: total }]);
+
+    currentOrder = [];
+    renderCurrentOrder();
+    loadOrders();
+    alert("Order placed successfully!");
+  }
+
+  async function loadOrders() {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (!recentOrders) return;
+    recentOrders.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      recentOrders.innerHTML = "<p>No orders yet.</p>";
+      return;
+    }
+
+    data.forEach(order => {
+      const item = document.createElement("div");
+      item.style.cssText = "background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 8px 0;";
+      const itemsText = (order.order_items || []).map(i => `${i.item_name} x${i.quantity}`).join(", ");
+      item.innerHTML = `
+        <strong>Order:</strong> ${new Date(order.created_at).toLocaleString()}<br>
+        <strong>Status:</strong> ${order.status}<br>
+        <strong>Total:</strong> ₱${formatCurrency(order.total)}<br>
+        <small>${itemsText}</small>
+      `;
+      recentOrders.appendChild(item);
+    });
+  }
+
+  async function subscribeToUpdates() {
+    supabase
+      .channel("orders-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => loadOrders())
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => loadOrders())
+      .subscribe();
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await seedSampleMenu();
+    await loadOrders();
+    subscribeToUpdates();
+    if (placeOrderButton) placeOrderButton.addEventListener("click", placeOrder);
+  });
+</script>
 </body>
 </html>
