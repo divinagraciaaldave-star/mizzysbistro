@@ -586,6 +586,18 @@ function net(){const o=navigator.onLine;$('#net').className='dot'+(o?'':' off');
 addEventListener('online',net);addEventListener('offline',net);loadPins();load();net();render();
 if(DISP){setInterval(()=>{load();render()},1000);const beat=()=>{try{bc&&bc.postMessage({t:'hb'})}catch(e){}};beat();setInterval(beat,2000);try{bc&&bc.postMessage({t:'ask'})}catch(e){}}else{setInterval(()=>{updateBadge();if(cdsFull)paintCf()},1500);if(!GUEST)setInterval(checkLock,5000)}
 </script>
+<h2>Menu</h2>
+<div id="menuList"></div>
+
+<h2>Current Order</h2>
+<div id="orderList"></div>
+<div id="orderSummary" style="font-weight: bold; margin: 10px 0;">Total: ₱0.00</div>
+<button id="placeOrderButton" type="button" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Place Order</button>
+
+<h2>Recent Orders</h2>
+<div id="recentOrders"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div id="recentOrders"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const supabaseUrl = "https://dgziewmbrpfhtvzipfir.supabase.co";
