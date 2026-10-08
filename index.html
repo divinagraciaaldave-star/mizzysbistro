@@ -1,1330 +1,421 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StoreHub POS - Cloud Point of Sale & Business Management</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        storehub: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Font Inter & FontAwesome -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My POS · Mizzy's Bistro</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#12302f;--mute:#5d7471;--line:#dbe4e1;--pri:#1f6f5c;--prit:#fff;--acc:#e8a317;--bad:#c8433a;--soft:#e4f0ec;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1b1a;--card:#162826;--ink:#e6f0ed;--mute:#93aca7;--line:#27403c;--pri:#3fb391;--prit:#06231c;--acc:#f0b84a;--bad:#ef7a70;--soft:#1d3a35}}
+:root[data-theme="dark"]{--bg:#0e1b1a;--card:#162826;--ink:#e6f0ed;--mute:#93aca7;--line:#27403c;--pri:#3fb391;--prit:#06231c;--acc:#f0b84a;--bad:#ef7a70;--soft:#1d3a35}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+button.p{background:var(--pri);color:var(--prit);border-color:var(--pri);font-weight:600}
+button.d{color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
+header{display:flex;gap:8px;align-items:center;padding:10px 12px;background:var(--pri);color:var(--prit);flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header h1{font-size:20px;margin-right:6px}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1}
+nav button{background:transparent;color:inherit;border-color:transparent;white-space:nowrap}
+nav button.on{background:var(--prit);color:var(--pri);font-weight:700}
+.who{font-size:13px;display:flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:#7ee08a;display:inline-block}.dot.off{background:var(--acc)}
+main{padding:12px;max-width:1300px;margin:auto}
+.pos{display:grid;grid-template-columns:1fr 370px;gap:12px}
+@media(max-width:900px){.pos{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{padding:6px 10px;border-radius:999px;font-size:13px}
+.chip.on{background:var(--pri);color:var(--prit);border-color:var(--pri)}
+.chip.busy{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 22%,var(--card))}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.tile{text-align:left;padding:10px;display:flex;flex-direction:column;gap:2px;min-height:96px}
+.tile b{font-size:14px}.tile .e{font-size:26px}.tile small{color:var(--mute)}
+.tile.out{opacity:.4}
+.line{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.line .n{flex:1}.line small{color:var(--mute);display:block}
+.q{display:flex;gap:4px;align-items:center}.q button{padding:2px 9px}
+.tot div{display:flex;justify-content:space-between;padding:2px 0}
+.tot .g{font:800 22px "Bricolage Grotesque",sans-serif;border-top:2px solid var(--ink);margin-top:6px;padding-top:6px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:12px;z-index:20}
+#modal.on{display:flex}
+.box{background:var(--card);border-radius:14px;padding:16px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.box h2{margin-bottom:10px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.kpi{font:800 26px "Bricolage Grotesque",sans-serif}
+.bar{height:10px;border-radius:5px;background:var(--pri);margin:3px 0 8px}
+table{width:100%;border-collapse:collapse}td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft)}
+.tag.w{background:color-mix(in srgb,var(--acc) 30%,var(--card))}.tag.b{background:color-mix(in srgb,var(--bad) 25%,var(--card))}
+.mut{color:var(--mute)}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;display:none;z-index:30}
+@media(prefers-reduced-motion:no-preference){.box{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:0}}}
+@media print{.box .mut,.box small{color:#000!important}body>*:not(#modal){display:none!important}#modal{position:static;background:none;display:block!important;padding:0}.box{box-shadow:none;max-width:80mm;margin:0;padding:0;max-height:none;overflow:visible;color:#000;background:#fff}.noprint{display:none!important}}
+
+.qrb svg{width:100%;height:auto;display:block}.qrb{background:#fff;padding:6px;border-radius:8px}
+.who{margin-left:auto}
+main{padding-bottom:96px}
+.bn{position:fixed;left:0;right:0;bottom:0;z-index:19;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bn button{border:0;border-radius:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:60px;font-size:12px;position:relative;color:var(--mute)}
+.bn button span{font-size:22px;line-height:1.1}
+.bn button.on{color:var(--pri);background:var(--soft);font-weight:700}
+.bd{position:absolute;top:6px;right:22%;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:0 6px}
+#sb{position:fixed;inset:0;z-index:17;background:rgba(0,0,0,.4);display:none}
+#sheet{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom,0px));z-index:18;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--line);max-height:72vh;overflow:auto;padding:14px;display:none;max-width:640px;margin:auto}
+#sheet h3{font-size:14px;color:var(--mute);margin:12px 0 6px}#sheet h3:first-child{margin-top:0}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.sg button{display:flex;gap:8px;align-items:center;text-align:left;padding:12px;position:relative}
+.sg button.on{background:var(--pri);color:var(--prit);border-color:var(--pri)}
+.sg .bd{position:static;margin-left:auto}
+@media(max-width:600px){.hs{display:none}header h1{font-size:18px}.who{gap:6px;font-size:12px}}
+.cartbar{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:16;background:var(--pri);color:var(--prit);border:0;border-radius:99px;padding:13px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+@media(min-width:901px){.cartbar{display:none}}
+@media(max-width:900px){#toast{bottom:calc(132px + env(safe-area-inset-bottom,0px))}}
+.br{opacity:.85;font-size:13px;margin-right:6px}@media(max-width:700px){.br{display:none}}
+.crit{background:color-mix(in srgb,var(--bad) 14%,var(--card))!important;border-color:color-mix(in srgb,var(--bad) 55%,var(--line))!important}
+.tile.crit small{color:var(--bad);font-weight:600}
+.mi{display:flex;gap:8px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-top:6px;flex-wrap:wrap}.mi .n{flex:1;min-width:180px}.mi.hid{opacity:.6}
+tr.critr td{background:color-mix(in srgb,var(--bad) 12%,var(--card))}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-full overflow-hidden flex flex-col">
-
-    <!-- ================= PIN AUTHENTICATION OVERLAY ================= -->
-    <div id="pin-modal" class="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-6 text-center">
-            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <h2 class="text-xl font-bold text-gray-900">Staff Access PIN</h2>
-            <p class="text-xs text-gray-500 mt-1 mb-6">Enter your 4-digit PIN to open register. (Admin PIN: 1024)</p>
-            
-            <div class="flex justify-center space-x-3 mb-6">
-                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 pin-dot bg-transparent transition-all"></div>
-                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 pin-dot bg-transparent transition-all"></div>
-                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 pin-dot bg-transparent transition-all"></div>
-                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 pin-dot bg-transparent transition-all"></div>
-            </div>
-
-            <!-- PIN Numeric Keypad -->
-            <div class="grid grid-cols-3 gap-3 max-w-xs mx-auto mb-4">
-                <button onclick="pressPin('1')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">1</button>
-                <button onclick="pressPin('2')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">2</button>
-                <button onclick="pressPin('3')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">3</button>
-                <button onclick="pressPin('4')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">4</button>
-                <button onclick="pressPin('5')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">5</button>
-                <button onclick="pressPin('6')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">6</button>
-                <button onclick="pressPin('7')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">7</button>
-                <button onclick="pressPin('8')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">8</button>
-                <button onclick="pressPin('9')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">9</button>
-                <button onclick="clearPin()" class="py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-sm transition border border-rose-100">Clear</button>
-                <button onclick="pressPin('0')" class="py-3 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl font-bold text-lg transition border">0</button>
-                <button onclick="backspacePin()" class="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition border"><i class="fa-solid fa-delete-left"></i></button>
-            </div>
-            <p id="pin-error" class="text-xs text-rose-600 font-semibold h-4"></p>
-        </div>
-    </div>
-
-    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shrink-0 z-20">
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-                <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold text-lg shadow-md flex items-center justify-center w-10 h-10">
-                    <i class="fa-solid fa-store"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-gray-900 leading-tight"><span id="header-store-name">StoreHub</span> <span class="text-indigo-600 text-xs uppercase bg-indigo-50 px-1.5 py-0.5 rounded font-semibold ml-1">Cloud POS</span></h1>
-                    <p class="text-xs text-gray-500">Outlet: <span id="current-outlet-display" class="font-medium text-gray-700">Makati Flagship (PH)</span></p>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-3 border-l pl-4 border-gray-200">
-                <div class="text-right hidden sm:block">
-                    <p class="text-xs font-semibold text-gray-900" id="current-cashier-name">Maria Santos</p>
-                    <p class="text-[10px] text-emerald-600 font-medium uppercase" id="current-cashier-role"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Cashier</p>
-                </div>
-                <button onclick="lockRegister()" title="Lock / Switch User" class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm border-2 border-indigo-200 hover:bg-indigo-200 transition">
-                    <i class="fa-solid fa-user-lock text-xs"></i>
-                </button>
-            </div>
-            <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-gray-900 p-2">
-                <i class="fa-solid fa-ellipsis-vertical text-xl"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-        <div class="bg-white w-64 h-full shadow-2xl p-6 flex flex-col justify-between ml-auto">
-            <div>
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-lg text-gray-900">More Options</h3>
-                    <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
-                <div class="space-y-3 text-sm text-gray-700">
-                    <p class="font-semibold text-xs text-gray-400 uppercase">Quick Actions</p>
-                    <button onclick="exportReportCSV(); toggleMobileMenu();" class="w-full text-left py-2 hover:text-indigo-600 flex items-center space-x-2">
-                        <i class="fa-solid fa-download w-5"></i><span>Export Reports CSV</span>
-                    </button>
-                    <button onclick="showToast('Sales report printed successfully!'); toggleMobileMenu();" class="w-full text-left py-2 hover:text-indigo-600 flex items-center space-x-2">
-                        <i class="fa-solid fa-print w-5"></i><span>Print X-Report</span>
-                    </button>
-                    <button onclick="lockRegister(); toggleMobileMenu();" class="w-full text-left py-2 text-rose-600 hover:text-rose-800 flex items-center space-x-2">
-                        <i class="fa-solid fa-lock w-5"></i><span>Lock Register (Switch User)</span>
-                    </button>
-                </div>
-            </div>
-            <div class="border-t pt-4 text-xs text-gray-500">
-                <p>StoreHub POS v4.9.0</p>
-                <p class="text-emerald-600 font-medium">Auto-Save Enabled</p>
-            </div>
-        </div>
-    </div>
-
-    <main class="flex-1 overflow-hidden relative pb-16 md:pb-20">
-
-        <!-- ================= TAB 1: POS REGISTER ================= -->
-        <div id="tab-pos" class="tab-content h-full flex flex-col md:flex-row">
-            <div class="flex-1 flex flex-col h-full bg-gray-50 p-4 overflow-hidden">
-                <div class="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
-                    <div class="relative flex-1">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="product-search" oninput="filterProducts()" placeholder="Search products by name or barcode..." 
-                            class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                    </div>
-                    <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0" id="category-filters">
-                        <button onclick="filterCategory('all')" class="cat-btn px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium shrink-0 shadow-sm transition">All Items</button>
-                        <button onclick="filterCategory('Coffee')" class="cat-btn px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-xl text-sm font-medium shrink-0 transition">Coffee</button>
-                        <button onclick="filterCategory('Bakery')" class="cat-btn px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-xl text-sm font-medium shrink-0 transition">Bakery</button>
-                        <button onclick="filterCategory('Meals')" class="cat-btn px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-xl text-sm font-medium shrink-0 transition">Meals</button>
-                        <button onclick="filterCategory('Beverages')" class="cat-btn px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-xl text-sm font-medium shrink-0 transition">Beverages</button>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto pr-1">
-                    <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <!-- Populated via JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Cart Panel -->
-            <div class="w-full md:w-[420px] bg-white border-l border-gray-200 flex flex-col h-full shadow-lg shrink-0">
-                <div class="p-4 border-b border-gray-200 flex items-center justify-between shrink-0">
-                    <div class="flex items-center space-x-2">
-                        <div class="bg-indigo-50 text-indigo-600 p-2 rounded-lg">
-                            <i class="fa-solid fa-cart-shopping"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-bold text-gray-900">Current Order</h2>
-                            <p class="text-xs text-gray-500" id="cart-item-count">0 items selected</p>
-                        </div>
-                    </div>
-                    <button onclick="clearCart()" class="text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition">
-                        <i class="fa-solid fa-trash-can mr-1"></i> Clear Cart
-                    </button>
-                </div>
-
-                <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-gray-100">
-                    <div class="text-center py-12 text-gray-400">
-                        <i class="fa-solid fa-basket-shopping text-4xl mb-3 text-gray-300"></i>
-                        <p class="text-sm font-medium">Your cart is empty</p>
-                        <p class="text-xs text-gray-400 mt-1">Tap a product on the left to add items</p>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-gray-50 border-t border-gray-200 space-y-3 shrink-0">
-                    <div class="flex items-center justify-between text-xs text-gray-600">
-                        <button onclick="openDiscountModal()" class="flex items-center space-x-1 text-indigo-600 font-semibold hover:underline">
-                            <i class="fa-solid fa-tag"></i><span>Apply Discount / Promo</span>
-                        </button>
-                        <span id="applied-discount-tag" class="hidden bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold"></span>
-                    </div>
-
-                    <div class="space-y-1.5 text-sm pt-2 border-t border-gray-200">
-                        <div class="flex justify-between text-gray-600">
-                            <span>Subtotal</span>
-                            <span id="cart-subtotal" class="font-medium">₱0.00</span>
-                        </div>
-                        <div class="flex justify-between text-gray-600">
-                            <span>Discount</span>
-                            <span id="cart-discount" class="font-medium text-emerald-600">-₱0.00</span>
-                        </div>
-                        <div class="flex justify-between text-gray-600">
-                            <span>Tax (<span id="cart-tax-rate-label">12</span>% Inclusive)</span>
-                            <span id="cart-tax" class="font-medium">₱0.00</span>
-                        </div>
-                        <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
-                            <span>Total Due</span>
-                            <span id="cart-total" class="text-indigo-600">₱0.00</span>
-                        </div>
-                    </div>
-
-                    <button onclick="openCheckoutModal()" id="checkout-btn" disabled class="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-credit-card"></i>
-                        <span>Proceed to Payment</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 2: INVENTORY ================= -->
-        <div id="tab-inventory" class="tab-content h-full hidden flex-col p-6 overflow-y-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Inventory & Stock Management</h2>
-                    <p class="text-sm text-gray-500">Monitor stock levels, track items, and update product catalog.</p>
-                </div>
-                <button onclick="openAddProductModal()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center space-x-2">
-                    <i class="fa-solid fa-plus"></i><span>Add New Product</span>
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase">Total Items SKU</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1" id="inv-total-skus">0</p>
-                    </div>
-                    <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl"><i class="fa-solid fa-boxes-stacked text-xl"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase">Low Stock Alerts</p>
-                        <p class="text-2xl font-bold text-amber-600 mt-1" id="inv-low-stock">0</p>
-                    </div>
-                    <div class="bg-amber-50 text-amber-600 p-3 rounded-xl"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase">Out of Stock</p>
-                        <p class="text-2xl font-bold text-rose-600 mt-1" id="inv-out-stock">0</p>
-                    </div>
-                    <div class="bg-rose-50 text-rose-600 p-3 rounded-xl"><i class="fa-solid fa-circle-xmark text-xl"></i></div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-                <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <div class="relative w-full sm:w-80">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="inventory-search" oninput="renderInventoryTable()" placeholder="Search inventory..." 
-                            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div class="flex items-center space-x-2 w-full sm:w-auto">
-                        <select id="inventory-filter-cat" onchange="renderInventoryTable()" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="all">All Categories</option>
-                            <option value="Coffee">Coffee</option>
-                            <option value="Bakery">Bakery</option>
-                            <option value="Meals">Meals</option>
-                            <option value="Beverages">Beverages</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto flex-1">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold border-b border-gray-200">
-                                <th class="p-4">Product Name</th>
-                                <th class="p-4">Category</th>
-                                <th class="p-4">Price</th>
-                                <th class="p-4">Stock Level</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table-body" class="divide-y divide-gray-100 text-sm text-gray-700">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 3: REPORTS & ANALYTICS ================= -->
-        <div id="tab-reports" class="tab-content h-full hidden flex-col p-6 overflow-y-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Sales Reports & Analytics</h2>
-                    <p class="text-sm text-gray-500">Real-time business performance metrics, sales breakdown, and transaction logs.</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="exportReportCSV()" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-download"></i><span>Export CSV</span>
-                    </button>
-                    <button onclick="showToast('Sales report printed successfully!')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-print"></i><span>Print X-Report</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase">Total Sales</p>
-                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="report-total-sales">₱0.00</h3>
-                        </div>
-                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-peso-sign text-xl"></i></div>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase">Total Transactions</p>
-                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="report-total-orders">0</h3>
-                        </div>
-                        <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl"><i class="fa-solid fa-receipt text-xl"></i></div>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase">Average Basket Size</p>
-                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="report-avg-basket">₱0.00</h3>
-                        </div>
-                        <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i class="fa-solid fa-basket-shopping text-xl"></i></div>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase">Tax Collected</p>
-                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="report-total-tax">₱0.00</h3>
-                        </div>
-                        <div class="bg-purple-50 text-purple-600 p-3 rounded-xl"><i class="fa-solid fa-percent text-xl"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm lg:col-span-2 flex flex-col">
-                    <h3 class="font-bold text-gray-900 mb-4">Sales Trend</h3>
-                    <div class="flex-1 relative min-h-[280px]">
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
-                    <h3 class="font-bold text-gray-900 mb-4">Top Selling Items</h3>
-                    <div id="top-products-list" class="space-y-3 flex-1 overflow-y-auto">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div class="p-4 border-b border-gray-200 font-bold text-gray-900 flex justify-between items-center">
-                    <span>Transactions Log</span>
-                    <button onclick="clearTransactions()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold">Clear History</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold border-b border-gray-200">
-                                <th class="p-4">Order ID</th>
-                                <th class="p-4">Time</th>
-                                <th class="p-4">Items Count</th>
-                                <th class="p-4">Payment Method</th>
-                                <th class="p-4">Cashier</th>
-                                <th class="p-4 text-right">Total Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactions-table-body" class="divide-y divide-gray-100 text-sm text-gray-700">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 4: SETTINGS & STAFF ================= -->
-        <div id="tab-settings" class="tab-content h-full hidden flex-col p-6 overflow-y-auto">
-            <div class="max-w-4xl mx-auto w-full space-y-6">
-                <div id="settings-lock-warning" class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-sm font-medium flex items-center justify-between">
-                    <span><i class="fa-solid fa-triangle-exclamation mr-2"></i><strong>Staff Mode:</strong> You are logged in as a Staff member. Settings and staff modifications require Administrator access (PIN: 1024).</span>
-                </div>
-
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Settings & Staff Management</h2>
-                    <p class="text-sm text-gray-500">Configure store preferences, tax settings, and staff PIN access.</p>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                    <h3 class="font-bold text-gray-900 text-base border-b pb-3 flex items-center space-x-2">
-                        <i class="fa-solid fa-store text-indigo-600"></i><span>Store & Outlet Profile</span>
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Store Name</label>
-                            <input type="text" id="setting-store-name" value="StoreHub Coffee" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Outlet Location</label>
-                            <input type="text" id="setting-outlet" value="Makati Flagship (PH)" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Tax Rate (%)</label>
-                            <input type="number" id="setting-tax-rate" value="12" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Currency Symbol</label>
-                            <input type="text" id="setting-currency" value="₱" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                    </div>
-                    <div class="flex justify-end pt-2">
-                        <button onclick="saveSettings()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Save Changes</button>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <h3 class="font-bold text-gray-900 text-base flex items-center space-x-2">
-                            <i class="fa-solid fa-users text-indigo-600"></i><span>Staff & PIN Management</span>
-                        </h3>
-                        <button onclick="openAddStaffModal()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold px-3 py-1.5 rounded-lg">
-                            <i class="fa-solid fa-user-plus mr-1"></i> Add Staff
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr class="text-gray-500 text-xs uppercase font-semibold border-b">
-                                    <th class="py-3">Name</th>
-                                    <th class="py-3">Role</th>
-                                    <th class="py-3">PIN Code</th>
-                                    <th class="py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="staff-table-body" class="divide-y divide-gray-100">
-                                <!-- Populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 flex items-center justify-around px-2 z-30 shadow-lg">
-        <button onclick="switchTab('pos')" id="nav-pos" class="tab-btn flex flex-col items-center justify-center flex-1 py-1 text-indigo-600 transition-all font-semibold">
-            <i class="fa-solid fa-cash-register text-lg mb-0.5"></i>
-            <span class="text-[11px]">Register</span>
-        </button>
-        <button onclick="switchTab('inventory')" id="nav-inventory" class="tab-btn flex flex-col items-center justify-center flex-1 py-1 text-gray-500 hover:text-gray-900 transition-all font-medium">
-            <i class="fa-solid fa-boxes-stacked text-lg mb-0.5"></i>
-            <span class="text-[11px]">Inventory</span>
-        </button>
-        <button onclick="switchTab('reports')" id="nav-reports" class="tab-btn flex flex-col items-center justify-center flex-1 py-1 text-gray-500 hover:text-gray-900 transition-all font-medium">
-            <i class="fa-solid fa-chart-line text-lg mb-0.5"></i>
-            <span class="text-[11px]">Reports</span>
-        </button>
-        <button onclick="switchTab('settings')" id="nav-settings" class="tab-btn flex flex-col items-center justify-center flex-1 py-1 text-gray-500 hover:text-gray-900 transition-all font-medium">
-            <i class="fa-solid fa-gear text-lg mb-0.5"></i>
-            <span class="text-[11px]">Settings</span>
-        </button>
-    </nav>
-
-    <!-- Checkout Modal -->
-    <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <div>
-                    <h3 class="font-bold text-lg text-gray-900">Complete Payment</h3>
-                    <p class="text-xs text-gray-500">Select payment method to finalize order</p>
-                </div>
-                <button onclick="closeCheckoutModal()" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-6 space-y-6">
-                <div class="bg-indigo-50 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <p class="text-xs text-indigo-600 font-semibold uppercase">Total Amount Due</p>
-                        <h4 class="text-3xl font-bold text-indigo-900 mt-0.5" id="modal-due-amount">₱0.00</h4>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500">Items count</p>
-                        <p class="text-sm font-bold text-gray-800" id="modal-item-count">0 items</p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-3">Choose Payment Method</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <button onclick="selectPaymentMethod('Cash')" id="pm-cash" class="pm-btn p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold text-sm flex flex-col items-center justify-center space-y-2 transition">
-                            <i class="fa-solid fa-money-bill-wave text-xl"></i><span>Cash</span>
-                        </button>
-                        <button onclick="selectPaymentMethod('Card')" id="pm-card" class="pm-btn p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold text-sm flex flex-col items-center justify-center space-y-2 hover:border-gray-300 transition">
-                            <i class="fa-solid fa-credit-card text-xl"></i><span>Credit/Debit</span>
-                        </button>
-                        <button onclick="selectPaymentMethod('QRPH')" id="pm-qrph" class="pm-btn p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold text-sm flex flex-col items-center justify-center space-y-2 hover:border-gray-300 transition">
-                            <i class="fa-solid fa-qrcode text-xl"></i><span>QRPH / GCash</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="cash-tendered-section" class="space-y-2">
-                    <label class="block text-xs font-semibold text-gray-600 uppercase">Cash Tendered</label>
-                    <input type="number" id="cash-tendered-input" oninput="calculateChange()" placeholder="Enter amount received" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <div class="flex justify-between items-center text-sm font-semibold pt-1">
-                        <span class="text-gray-600">Change Due:</span>
-                        <span id="change-due-amount" class="text-emerald-600 text-lg">₱0.00</span>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 bg-gray-50 border-t border-gray-200 flex space-x-3">
-                <button onclick="closeCheckoutModal()" class="flex-1 py-3 bg-white border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition">Cancel</button>
-                <button onclick="completeCheckout()" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition">Confirm & Print</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Discount Modal -->
-    <div id="discount-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="font-bold text-lg text-gray-900">Apply Discount / Promo</h3>
-                <button onclick="closeDiscountModal()" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="applyDiscountType('Senior / PWD', 0.20)" class="p-3 border rounded-xl font-semibold text-sm text-left hover:bg-indigo-50 hover:border-indigo-500 transition">
-                        <p class="text-indigo-600 font-bold">Senior / PWD</p>
-                        <p class="text-xs text-gray-500 mt-0.5">20% Statutory Discount</p>
-                    </button>
-                    <button onclick="applyDiscountType('Promo 10%', 0.10)" class="p-3 border rounded-xl font-semibold text-sm text-left hover:bg-indigo-50 hover:border-indigo-500 transition">
-                        <p class="text-indigo-600 font-bold">Promo 10%</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Voucher Code</p>
-                    </button>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Custom Discount (%)</label>
-                    <div class="flex space-x-2">
-                        <input type="number" id="custom-discount-input" placeholder="e.g. 15" class="flex-1 px-3 py-2 border rounded-xl text-sm">
-                        <button onclick="applyCustomDiscount()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold">Apply</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Product Modal -->
-    <div id="product-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="font-bold text-lg text-gray-900">Add New Inventory Item</h3>
-                <button onclick="closeAddProductModal()" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Product Name</label>
-                    <input type="text" id="new-prod-name" placeholder="e.g. Matcha Green Tea Latte" class="w-full px-3 py-2 border rounded-xl text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Category</label>
-                        <select id="new-prod-cat" class="w-full px-3 py-2 border rounded-xl text-sm">
-                            <option value="Coffee">Coffee</option>
-                            <option value="Bakery">Bakery</option>
-                            <option value="Meals">Meals</option>
-                            <option value="Beverages">Beverages</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Price</label>
-                        <input type="number" id="new-prod-price" placeholder="150" class="w-full px-3 py-2 border rounded-xl text-sm">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Initial Stock Count</label>
-                        <input type="number" id="new-prod-stock" placeholder="50" class="w-full px-3 py-2 border rounded-xl text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Icon (FontAwesome)</label>
-                        <input type="text" id="new-prod-icon" value="fa-mug-hot" class="w-full px-3 py-2 border rounded-xl text-sm">
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 bg-gray-50 border-t flex justify-end space-x-3">
-                <button onclick="closeAddProductModal()" class="px-4 py-2 border rounded-xl text-sm font-semibold text-gray-700 bg-white">Cancel</button>
-                <button onclick="saveNewProduct()" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm">Save Product</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification Banner -->
-    <div id="toast" class="fixed bottom-20 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-24 opacity-0 transition-all duration-300 z-50">
-        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-        <span id="toast-message" class="text-sm font-medium">Action completed successfully</span>
-    </div>
-
-    <script>
-        let currentPinInput = '';
-        let currentUser = null;
-
-        let storeSettings = JSON.parse(localStorage.getItem('storehub_settings')) || {
-            storeName: 'StoreHub Coffee',
-            outlet: 'Makati Flagship (PH)',
-            taxRate: 12,
-            currency: '₱'
-        };
-
-        let products = JSON.parse(localStorage.getItem('storehub_products')) || [
-            { id: 1, name: 'Caramel Macchiato', category: 'Coffee', price: 160, stock: 45, icon: 'fa-mug-hot' },
-            { id: 2, name: 'Cafe Latte', category: 'Coffee', price: 140, stock: 60, icon: 'fa-coffee' },
-            { id: 3, name: 'Cold Brew Supreme', category: 'Coffee', price: 155, stock: 25, icon: 'fa-glass-water' },
-            { id: 4, name: 'Matcha Green Tea', category: 'Beverages', price: 170, stock: 30, icon: 'fa-leaf' },
-            { id: 5, name: 'Butter Croissant', category: 'Bakery', price: 95, stock: 18, icon: 'fa-bread-slice' },
-            { id: 6, name: 'Chocolate Fudge Cake', category: 'Bakery', price: 180, stock: 12, icon: 'fa-cake-candles' },
-            { id: 7, name: 'Avocado Toast & Egg', category: 'Meals', price: 220, stock: 15, icon: 'fa-utensils' },
-            { id: 8, name: 'Club Sandwich Meal', category: 'Meals', price: 250, stock: 20, icon: 'fa-burger' }
-        ];
-
-        let transactions = JSON.parse(localStorage.getItem('storehub_transactions')) || [
-            { id: 'SH-8492', time: '10:45 AM', items: 3, payment: 'Cash', cashier: 'Maria Santos', total: 495 }
-        ];
-
-        let staffList = JSON.parse(localStorage.getItem('storehub_staff')) || [
-            { id: 1, name: 'System Admin', role: 'Administrator', pin: '1024' },
-            { id: 2, name: 'Maria Santos', role: 'Cashier', pin: '1234' },
-            { id: 3, name: 'Juan Dela Cruz', role: 'Barista', pin: '5678' }
-        ];
-
-        let cart = [];
-        let currentCategory = 'all';
-        let selectedPayment = 'Cash';
-        let appliedDiscount = { name: '', rate: 0 };
-        let salesChartInstance = null;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            applySettingsToUI();
-            renderProducts();
-            renderCart();
-            renderInventoryTable();
-            renderStaffTable();
-            updateReportsDashboard();
-            initSalesChart();
-        });
-
-        function saveData() {
-            localStorage.setItem('storehub_settings', JSON.stringify(storeSettings));
-            localStorage.setItem('storehub_products', JSON.stringify(products));
-            localStorage.setItem('storehub_transactions', JSON.stringify(transactions));
-            localStorage.setItem('storehub_staff', JSON.stringify(staffList));
-        }
-
-        function applySettingsToUI() {
-            document.getElementById('header-store-name').innerText = storeSettings.storeName;
-            document.getElementById('current-outlet-display').innerText = storeSettings.outlet;
-            document.getElementById('cart-tax-rate-label').innerText = storeSettings.taxRate;
-
-            document.getElementById('setting-store-name').value = storeSettings.storeName;
-            document.getElementById('setting-outlet').value = storeSettings.outlet;
-            document.getElementById('setting-tax-rate').value = storeSettings.taxRate;
-            document.getElementById('setting-currency').value = storeSettings.currency;
-        }
-
-        // PIN Keypad Management
-        function pressPin(digit) {
-            if(currentPinInput.length < 4) {
-                currentPinInput += digit;
-                updatePinDots();
-                if(currentPinInput.length === 4) {
-                    verifyPin();
-                }
-            }
-        }
-
-        function backspacePin() {
-            currentPinInput = currentPinInput.slice(0, -1);
-            updatePinDots();
-        }
-
-        function clearPin() {
-            currentPinInput = '';
-            updatePinDots();
-            document.getElementById('pin-error').innerText = '';
-        }
-
-        function updatePinDots() {
-            const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, index) => {
-                if(index < currentPinInput.length) {
-                    dot.classList.add('bg-indigo-600');
-                } else {
-                    dot.classList.remove('bg-indigo-600');
-                }
-            });
-        }
-
-        function verifyPin() {
-            const matchedStaff = staffList.find(s => s.pin === currentPinInput);
-            if(matchedStaff) {
-                currentUser = matchedStaff;
-                document.getElementById('current-cashier-name').innerText = currentUser.name;
-                document.getElementById('current-cashier-role').innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1"></i>${currentUser.role}`;
-                document.getElementById('pin-modal').classList.add('hidden');
-                currentPinInput = '';
-                updatePinDots();
-                document.getElementById('pin-error').innerText = '';
-                
-                // Enforce permissions on tab views
-                applyRolePermissions();
-                showToast(`Welcome back, ${currentUser.name} (${currentUser.role})`);
-            } else {
-                document.getElementById('pin-error').innerText = 'Invalid PIN code. Try again (Admin: 1024)';
-                setTimeout(() => { clearPin(); }, 1200);
-            }
-        }
-
-        function lockRegister() {
-            currentPinInput = '';
-            updatePinDots();
-            document.getElementById('pin-error').innerText = '';
-            document.getElementById('pin-modal').classList.remove('hidden');
-        }
-
-        function applyRolePermissions() {
-            const settingsWarning = document.getElementById('settings-lock-warning');
-            const isAdmin = currentUser && currentUser.role === 'Administrator';
-
-            if(!isAdmin) {
-                settingsWarning.classList.remove('hidden');
-            } else {
-                settingsWarning.classList.add('hidden');
-            }
-        }
-
-        function switchTab(tabId) {
-            // Check permissions for Settings & Reports
-            if((tabId === 'settings' || tabId === 'reports') && currentUser && currentUser.role !== 'Administrator') {
-                showToast('Access restricted: Administrator rights required.');
-                return;
-            }
-
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('text-indigo-600', 'font-semibold');
-                el.classList.add('text-gray-500', 'font-medium');
-            });
-
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabId}`).classList.add('flex');
-            
-            const btn = document.getElementById(`nav-${tabId}`);
-            if(btn) {
-                btn.classList.add('text-indigo-600', 'font-semibold');
-                btn.classList.remove('text-gray-500', 'font-medium');
-            }
-
-            if(tabId === 'reports') {
-                updateReportsDashboard();
-                if(salesChartInstance) salesChartInstance.update();
-            }
-        }
-
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
-        }
-
-        function renderProducts(search = '', category = 'all') {
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = '';
-
-            const filtered = products.filter(p => {
-                const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-                const matchesCat = category === 'all' || p.category === category;
-                return matchesSearch && matchesCat;
-            });
-
-            if(filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-gray-400">
-                        <i class="fa-solid fa-box-open text-3xl mb-2"></i>
-                        <p class="text-sm">No products found matching your search</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filtered.forEach(p => {
-                const outOfStock = p.stock <= 0;
-                const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between relative overflow-hidden ${outOfStock ? 'opacity-60 grayscale' : ''}`;
-                card.onclick = () => { if(!outOfStock) addToCart(p.id); };
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
-                            <i class="fa-solid ${p.icon}"></i>
-                        </div>
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.stock > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
-                            Stock: ${p.stock}
-                        </span>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-900 text-sm leading-snug mb-1">${p.name}</h4>
-                        <p class="text-xs text-gray-500">${p.category}</p>
-                    </div>
-                    <div class="mt-4 pt-2 border-t border-gray-100 flex justify-between items-center">
-                        <span class="font-bold text-indigo-600 text-base">${storeSettings.currency}${p.price.toFixed(2)}</span>
-                        <button class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center">
-                            <i class="fa-solid fa-plus text-xs"></i>
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function filterCategory(cat) {
-            currentCategory = cat;
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                btn.className = "cat-btn px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-xl text-sm font-medium shrink-0 transition";
-            });
-            event.currentTarget.className = "cat-btn px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium shrink-0 shadow-sm transition";
-            const search = document.getElementById('product-search').value;
-            renderProducts(search, cat);
-        }
-
-        function filterProducts() {
-            const search = document.getElementById('product-search').value;
-            renderProducts(search, currentCategory);
-        }
-
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if(!product || product.stock <= 0) return;
-
-            const existing = cart.find(item => item.id === productId);
-            if(existing) {
-                if(existing.qty < product.stock) {
-                    existing.qty++;
-                } else {
-                    showToast('Maximum available stock reached!');
-                    return;
-                }
-            } else {
-                cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
-            }
-            renderCart();
-        }
-
-        function updateCartQty(productId, change) {
-            const item = cart.find(i => i.id === productId);
-            const product = products.find(p => p.id === productId);
-            if(!item) return;
-
-            item.qty += change;
-            if(item.qty <= 0) {
-                cart = cart.filter(i => i.id !== productId);
-            } else if(item.qty > product.stock) {
-                item.qty = product.stock;
-                showToast('Reached maximum stock limit');
-            }
-            renderCart();
-        }
-
-        function removeFromCart(productId) {
-            cart = cart.filter(i => i.id !== productId);
-            renderCart();
-        }
-
-        function clearCart() {
-            cart = [];
-            appliedDiscount = { name: '', rate: 0 };
-            document.getElementById('applied-discount-tag').classList.add('hidden');
-            renderCart();
-        }
-
-        function renderCart() {
-            const container = document.getElementById('cart-items');
-            const countLabel = document.getElementById('cart-item-count');
-            const checkoutBtn = document.getElementById('checkout-btn');
-
-            const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-            countLabel.innerText = `${totalItems} items selected`;
-
-            if(cart.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-gray-400">
-                        <i class="fa-solid fa-basket-shopping text-4xl mb-3 text-gray-300"></i>
-                        <p class="text-sm font-medium">Your cart is empty</p>
-                        <p class="text-xs text-gray-400 mt-1">Tap a product on the left to add items</p>
-                    </div>
-                `;
-                checkoutBtn.disabled = true;
-                updateCartTotals(0, 0, 0, 0);
-                return;
-            }
-
-            checkoutBtn.disabled = false;
-            container.innerHTML = '';
-
-            cart.forEach(item => {
-                const el = document.createElement('div');
-                el.className = "flex items-center justify-between py-3";
-                el.innerHTML = `
-                    <div class="flex-1 pr-3">
-                        <h5 class="font-semibold text-gray-900 text-sm">${item.name}</h5>
-                        <p class="text-xs text-indigo-600 font-medium">${storeSettings.currency}${item.price.toFixed(2)} each</p>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="updateCartQty(${item.id}, -1)" class="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-minus"></i></button>
-                        <span class="w-6 text-center font-bold text-sm">${item.qty}</span>
-                        <button onclick="updateCartQty(${item.id}, 1)" class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-plus"></i></button>
-                        <button onclick="removeFromCart(${item.id})" class="text-gray-400 hover:text-rose-600 p-1 ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                    </div>
-                `;
-                container.appendChild(el);
-            });
-
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const discountAmount = subtotal * appliedDiscount.rate;
-            const taxableAmount = subtotal - discountAmount;
-            const taxMultiplier = storeSettings.taxRate / 100;
-            const tax = taxableAmount * taxMultiplier; 
-            const total = taxableAmount; 
-
-            updateCartTotals(subtotal, discountAmount, tax, total);
-        }
-
-        function updateCartTotals(subtotal, discount, tax, total) {
-            document.getElementById('cart-subtotal').innerText = `${storeSettings.currency}${subtotal.toFixed(2)}`;
-            document.getElementById('cart-discount').innerText = `-${storeSettings.currency}${discount.toFixed(2)}`;
-            document.getElementById('cart-tax').innerText = `${storeSettings.currency}${tax.toFixed(2)}`;
-            document.getElementById('cart-total').innerText = `${storeSettings.currency}${total.toFixed(2)}`;
-        }
-
-        function openDiscountModal() {
-            if(cart.length === 0) {
-                showToast('Add items to cart before applying discount');
-                return;
-            }
-            document.getElementById('discount-modal').classList.remove('hidden');
-        }
-
-        function closeDiscountModal() {
-            document.getElementById('discount-modal').classList.add('hidden');
-        }
-
-        function applyDiscountType(name, rate) {
-            appliedDiscount = { name: `${name} (${rate*100}%)`, rate: rate };
-            const tag = document.getElementById('applied-discount-tag');
-            tag.innerText = appliedDiscount.name;
-            tag.classList.remove('hidden');
-            closeDiscountModal();
-            renderCart();
-            showToast('Discount applied successfully');
-        }
-
-        function applyCustomDiscount() {
-            const val = parseFloat(document.getElementById('custom-discount-input').value);
-            if(isNaN(val) || val <= 0 || val > 100) {
-                showToast('Please enter a valid discount percentage');
-                return;
-            }
-            applyDiscountType('Custom', val / 100);
-            document.getElementById('custom-discount-input').value = '';
-        }
-
-        function openCheckoutModal() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const discountAmount = subtotal * appliedDiscount.rate;
-            const total = subtotal - discountAmount;
-
-            document.getElementById('modal-due-amount').innerText = `${storeSettings.currency}${total.toFixed(2)}`;
-            document.getElementById('modal-item-count').innerText = `${cart.reduce((s, i) => s + i.qty, 0)} items`;
-            document.getElementById('cash-tendered-input').value = total.toFixed(2);
-            document.getElementById('change-due-amount').innerText = `${storeSettings.currency}0.00`;
-            document.getElementById('checkout-modal').classList.remove('hidden');
-        }
-
-        function closeCheckoutModal() {
-            document.getElementById('checkout-modal').classList.add('hidden');
-        }
-
-        function selectPaymentMethod(method) {
-            selectedPayment = method;
-            document.querySelectorAll('.pm-btn').forEach(btn => {
-                btn.className = "pm-btn p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold text-sm flex flex-col items-center justify-center space-y-2 hover:border-gray-300 transition";
-            });
-            document.getElementById(`pm-${method.toLowerCase()}`).className = "pm-btn p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold text-sm flex flex-col items-center justify-center space-y-2 transition";
-            
-            const cashSection = document.getElementById('cash-tendered-section');
-            if(method === 'Cash') {
-                cashSection.classList.remove('hidden');
-            } else {
-                cashSection.classList.add('hidden');
-            }
-        }
-
-        function calculateChange() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const total = subtotal - (subtotal * appliedDiscount.rate);
-            const tendered = parseFloat(document.getElementById('cash-tendered-input').value) || 0;
-            const change = tendered - total;
-            document.getElementById('change-due-amount').innerText = `${storeSettings.currency}${change >= 0 ? change.toFixed(2) : '0.00'}`;
-        }
-
-        function completeCheckout() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const total = subtotal - (subtotal * appliedDiscount.rate);
-
-            cart.forEach(cartItem => {
-                const prod = products.find(p => p.id === cartItem.id);
-                if(prod) prod.stock -= cartItem.qty;
-            });
-
-            const newTx = {
-                id: `SH-${Math.floor(1000 + Math.random() * 9000)}`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                items: cart.reduce((s, i) => s + i.qty, 0),
-                payment: selectedPayment,
-                cashier: currentUser ? currentUser.name : 'Cashier',
-                total: total
-            };
-            transactions.unshift(newTx);
-
-            saveData();
-            closeCheckoutModal();
-            clearCart();
-            renderProducts();
-            renderInventoryTable();
-            updateReportsDashboard();
-            showToast(`Transaction ${newTx.id} completed successfully!`);
-        }
-
-        function renderInventoryTable() {
-            const tbody = document.getElementById('inventory-table-body');
-            const search = document.getElementById('inventory-search').value.toLowerCase();
-            const catFilter = document.getElementById('inventory-filter-cat').value;
-
-            tbody.innerHTML = '';
-            let totalSkus = products.length;
-            let lowStock = 0;
-            let outStock = 0;
-
-            const filtered = products.filter(p => {
-                const matchName = p.name.toLowerCase().includes(search);
-                const matchCat = catFilter === 'all' || p.category === catFilter;
-                return matchName && matchCat;
-            });
-
-            filtered.forEach(p => {
-                if(p.stock === 0) outStock++;
-                else if(p.stock <= 15) lowStock++;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition border-b border-gray-100";
-                tr.innerHTML = `
-                    <td class="p-4 font-semibold text-gray-900 flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid ${p.icon}"></i></div>
-                        <span>${p.name}</span>
-                    </td>
-                    <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-medium">${p.category}</span></td>
-                    <td class="p-4 font-bold text-gray-900">${storeSettings.currency}${p.price.toFixed(2)}</td>
-                    <td class="p-4">
-                        <input type="number" value="${p.stock}" onchange="updateStock(${p.id}, this.value)" class="w-20 px-2 py-1 border rounded-lg text-sm font-semibold text-center focus:ring-2 focus:ring-indigo-500">
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${p.stock > 15 ? 'bg-emerald-50 text-emerald-700' : p.stock > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}">
-                            ${p.stock > 15 ? 'In Stock' : p.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-                        </span>
-                    </td>
-                    <td class="p-4 text-right">
-                        <button onclick="deleteProduct(${p.id})" class="text-gray-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fa-solid fa-trash-can"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('inv-total-skus').innerText = totalSkus;
-            document.getElementById('inv-low-stock').innerText = lowStock;
-            document.getElementById('inv-out-stock').innerText = outStock;
-        }
-
-        function updateStock(productId, newStock) {
-            const prod = products.find(p => p.id === productId);
-            if(prod) {
-                prod.stock = parseInt(newStock) || 0;
-                saveData();
-                renderInventoryTable();
-                renderProducts();
-                showToast(`Updated stock for ${prod.name}`);
-            }
-        }
-
-        function openAddProductModal() {
-            document.getElementById('product-modal').classList.remove('hidden');
-        }
-
-        function closeAddProductModal() {
-            document.getElementById('product-modal').classList.add('hidden');
-        }
-
-        function saveNewProduct() {
-            const name = document.getElementById('new-prod-name').value;
-            const category = document.getElementById('new-prod-cat').value;
-            const price = parseFloat(document.getElementById('new-prod-price').value);
-            const stock = parseInt(document.getElementById('new-prod-stock').value);
-            const icon = document.getElementById('new-prod-icon').value || 'fa-mug-hot';
-
-            if(!name || isNaN(price) || isNaN(stock)) {
-                showToast('Please fill in all required product fields correctly');
-                return;
-            }
-
-            const newProd = {
-                id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-                name, category, price, stock, icon
-            };
-            products.push(newProd);
-            saveData();
-            closeAddProductModal();
-            renderProducts();
-            renderInventoryTable();
-            showToast('New product added to catalog successfully!');
-        }
-
-        function deleteProduct(productId) {
-            products = products.filter(p => p.id !== productId);
-            saveData();
-            renderProducts();
-            renderInventoryTable();
-            showToast('Product deleted from inventory');
-        }
-
-        function updateReportsDashboard() {
-            const totalSales = transactions.reduce((sum, t) => sum + t.total, 0);
-            const totalOrders = transactions.length;
-            const avgBasket = totalOrders > 0 ? totalSales / totalOrders : 0;
-            const taxMultiplier = storeSettings.taxRate / 100;
-            const totalTax = totalSales * taxMultiplier;
-
-            document.getElementById('report-total-sales').innerText = `${storeSettings.currency}${totalSales.toFixed(2)}`;
-            document.getElementById('report-total-orders').innerText = totalOrders;
-            document.getElementById('report-avg-basket').innerText = `${storeSettings.currency}${avgBasket.toFixed(2)}`;
-            document.getElementById('report-total-tax').innerText = `${storeSettings.currency}${totalTax.toFixed(2)}`;
-
-            const tbody = document.getElementById('transactions-table-body');
-            tbody.innerHTML = '';
-            if(transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">No transactions recorded yet</td></tr>`;
-            } else {
-                transactions.forEach(t => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-gray-50 transition border-b border-gray-100";
-                    tr.innerHTML = `
-                        <td class="p-4 font-semibold text-indigo-600">${t.id}</td>
-                        <td class="p-4 text-gray-500">${t.time}</td>
-                        <td class="p-4">${t.items} items</td>
-                        <td class="p-4"><span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-semibold">${t.payment}</span></td>
-                        <td class="p-4 text-gray-600">${t.cashier}</td>
-                        <td class="p-4 text-right font-bold text-gray-900">${storeSettings.currency}${t.total.toFixed(2)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            const topList = document.getElementById('top-products-list');
-            topList.innerHTML = `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">1</div>
-                        <div><p class="text-sm font-semibold text-gray-900">Caramel Macchiato</p><p class="text-xs text-gray-500">Coffee</p></div>
-                    </div>
-                    <span class="font-bold text-indigo-600 text-sm">${storeSettings.currency}1,440</span>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">2</div>
-                        <div><p class="text-sm font-semibold text-gray-900">Butter Croissant</p><p class="text-xs text-gray-500">Bakery</p></div>
-                    </div>
-                    <span class="font-bold text-indigo-600 text-sm">${storeSettings.currency}1,140</span>
-                </div>
-            `;
-        }
-
-        function clearTransactions() {
-            if(currentUser && currentUser.role !== 'Administrator') {
-                showToast('Administrator privileges required to clear transaction history.');
-                return;
-            }
-            transactions = [];
-            saveData();
-            updateReportsDashboard();
-            showToast('Transaction history cleared.');
-        }
-
-        function initSalesChart() {
-            const ctx = document.getElementById('salesChart').getContext('2d');
-            salesChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
-                    datasets: [{
-                        label: 'Sales',
-                        data: [450, 1280, 2450, 1890, 2100, 1650, 850],
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        function exportReportCSV() {
-            showToast('Sales report exported to CSV successfully!');
-        }
-
-        function renderStaffTable() {
-            const tbody = document.getElementById('staff-table-body');
-            tbody.innerHTML = '';
-            staffList.forEach(staff => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-gray-100 hover:bg-gray-50";
-                tr.innerHTML = `
-                    <td class="py-3 font-semibold text-gray-900">${staff.name}</td>
-                    <td class="py-3"><span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-semibold">${staff.role}</span></td>
-                    <td class="py-3 font-mono font-bold text-gray-600">${staff.pin}</td>
-                    <td class="py-3 text-right">
-                        <button onclick="removeStaff(${staff.id})" class="text-rose-600 hover:text-rose-800 text-xs font-semibold">Remove</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function openAddStaffModal() {
-            if(currentUser && currentUser.role !== 'Administrator') {
-                showToast('Administrator privileges required to add staff members.');
-                return;
-            }
-            const name = prompt("Enter new staff member name:");
-            if(!name) return;
-            const role = prompt("Enter staff role (Administrator, Cashier, Barista):", "Cashier");
-            const pin = prompt("Enter 4-digit security PIN:", "1234");
-            if(name && pin && pin.length === 4) {
-                staffList.push({ id: staffList.length > 0 ? Math.max(...staffList.map(s => s.id)) + 1 : 1, name, role, pin });
-                saveData();
-                renderStaffTable();
-                showToast(`Staff member ${name} added successfully`);
-            } else {
-                showToast('Invalid PIN or details. PIN must be 4 digits.');
-            }
-        }
-
-        function removeStaff(id) {
-            if(currentUser && currentUser.role !== 'Administrator') {
-                showToast('Administrator privileges required.');
-                return;
-            }
-            const staffMember = staffList.find(s => s.id === id);
-            if(staffMember && staffMember.pin === '1024') {
-                showToast('Cannot remove default system administrator.');
-                return;
-            }
-            staffList = staffList.filter(s => s.id !== id);
-            saveData();
-            renderStaffTable();
-            showToast('Staff member removed');
-        }
-
-        function saveSettings() {
-            if(currentUser && currentUser.role !== 'Administrator') {
-                showToast('Administrator privileges required to update settings.');
-                return;
-            }
-            storeSettings.storeName = document.getElementById('setting-store-name').value;
-            storeSettings.outlet = document.getElementById('setting-outlet').value;
-            storeSettings.taxRate = parseFloat(document.getElementById('setting-tax-rate').value) || 12;
-            storeSettings.currency = document.getElementById('setting-currency').value || '₱';
-
-            saveData();
-            applySettingsToUI();
-            renderProducts();
-            renderCart();
-            renderInventoryTable();
-            updateReportsDashboard();
-            showToast('Store settings updated successfully!');
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = message;
-            toast.classList.remove('translate-y-24', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-24', 'opacity-0');
-            }, 3500);
-        }
-    </script>
+<body>
+<header>
+<h1>My POS</h1><small class="br">Mizzy's Bistro</small>
+<div class="who"><span id="dl" class="tag" style="display:none;color:var(--ink)">🖥 Linked</span><span><i class="dot" id="net"></i> <span id="netl">Online</span></span><span id="me"></span><button onclick="theme()" aria-label="Toggle light or dark" style="padding:4px 8px;background:transparent;color:inherit;border-color:rgba(255,255,255,.45)">🌓</button><button onclick="signOut()" style="white-space:nowrap;padding:4px 10px;background:transparent;color:inherit;border-color:rgba(255,255,255,.45)">Lock</button></div>
+</header>
+<main id="app"></main>
+<div id="sb" onclick="sheetOpen=false;paintSheet()"></div><div id="sheet"></div><div class="bn" id="bn"></div><div id="cf" style="display:none;position:fixed;inset:0;z-index:15;background:var(--bg);overflow:auto;padding:16px"></div><div id="modal"></div><div id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const SHOP="Mizzy's Bistro",ADDR="888 Banawe Square, Banawe Street, corner G. Roxas St, Quezon City, 1115 Metro Manila",PHONE="+63 976 551 3604";
+const $=s=>document.querySelector(s),m$=n=>(n<0?'−':'')+'₱'+Math.abs(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const staff=[{id:1,name:'Cashier',role:'Cashier',pin:'4021'},{id:2,name:'Admin',role:'Admin',pin:'1024'}];
+let catList=['Mains','Sides','Drinks','Desserts'];
+let menu=[
+{id:1,n:'Nasi lemak',c:'Mains',p:185,e:'🍛',s:20,o:'f'},{id:2,n:'Chicken burger',c:'Mains',p:225,e:'🍔',s:15,o:'f'},
+{id:3,n:'Pad thai',c:'Mains',p:245,e:'🍜',s:12,o:'f'},{id:4,n:'Margherita pizza',c:'Mains',p:320,e:'🍕',s:10,o:'f'},
+{id:5,n:'Fries',c:'Sides',p:125,e:'🍟',s:30,o:''},{id:6,n:'Spring rolls',c:'Sides',p:145,e:'🥟',s:18,o:''},
+{id:7,n:'Garden salad',c:'Sides',p:165,e:'🥗',s:9,o:''},{id:8,n:'Iced latte',c:'Drinks',p:135,e:'🧋',s:40,o:'d'},
+{id:9,n:'Lemon tea',c:'Drinks',p:95,e:'🍋',s:40,o:'d'},{id:10,n:'Mango smoothie',c:'Drinks',p:155,e:'🥭',s:14,o:'d'},
+{id:11,n:'Cheesecake',c:'Desserts',p:175,e:'🍰',s:4,o:''},{id:12,n:'Ice cream',c:'Desserts',p:110,e:'🍨',s:25,o:''}];
+const adds=[['Extra cheese',35],['Fried egg',25],['Spicy',0],['No onion',0]],sizes=[['Regular',0],['Large',30]];
+let tickets={},orders=[],kds=[],seq=1000,me=null,view='pos',cat='All',q='',cur=null,pay=null;
+let custs=[{ph:'0123',n:'Mia Tan',pts:120,cr:0},{ph:'0456',n:'Leo Lim',pts:260,cr:60}];
+let shift={open:false},shifts=[];
+const DISP=location.hash==='#display',GM=location.hash.match(/^#table=(T[1-8])$/),GUEST=GM?GM[1]:null;let rollouts=[],qr={t:'T1',cart:{}};
+const outlets=[[SHOP+' (this outlet)',null],['City Mall',{s:124025,o:212}],['Bay Branch',{s:86750,o:158}]];
+const tables=[...Array(8)].map((_,i)=>'T'+(i+1));
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)};
+const modal=h=>{$('#modal').innerHTML='<div class="box">'+h+'</div>';$('#modal').classList.add('on')};
+const closeModal=()=>{$('#modal').classList.remove('on');$('#modal').innerHTML='';if(paying&&pay){paying=null;save()}if(stale){stale=false;render()}};
+$('#modal').onclick=e=>{if(e.target.id==='modal'&&me)closeModal()};
+const tier=c=>c.pts>=200?'Gold':'Silver';
+const r2=x=>Math.round((+x+Number.EPSILON)*100)/100;
+const fmtOR=n=>String(n).padStart(7,'0');
+const cfgDef={tin:'',reg:'',min:'',sn:'',ptu:'',atp:'',serFrom:1,serTo:0,svc:5,sup:''};
+let cfg={...cfgDef},audit=[],APPR=null,rcb=null,pendSplit=0,SPL=null,auRange='day',auType='all',auOpen=false,mq='',mc='All',mf='all';
+const is86=i=>i.x86===new Date().toDateString(),par=i=>i.par==null?5:i.par,crit=i=>i.s<=par(i),unavail=i=>i.s<=0||is86(i),hasKids=k=>Object.values(tickets).some(x=>x.parent===k);
+const clean=s=>String(s).replace(/[<>&"'`\\]/g,'').trim();
+const REASONS={void:['Customer cancelled','Wrong item ordered','Kitchen error or spoiled','Server mistake','Other'],refund:['Food quality complaint','Wrong order','Customer changed mind','Overcharged','Other'],disc:['Promo','Customer complaint','Manager comp','Staff meal','Other']};
+function calc(t){
+const sub=r2(t.lines.reduce((a,l)=>a+l.p*l.q,0)),claimed=new Set(),spl=[];
+(t.sp||[]).forEach(h=>{let g=0;t.lines.forEach((l,i)=>{if(!claimed.has(i)&&(h.seat===0||(l.seat||1)===h.seat)){claimed.add(i);g+=l.p*l.q}});g=r2(g);const net=r2(g/1.12),vat=r2(g-net),disc=r2(net*.2);spl.push({...h,g,vat,disc,pay:r2(net-disc)})});
+const spG=r2(spl.reduce((a,h)=>a+h.g,0)),spv=r2(spl.reduce((a,h)=>a+h.vat,0)),sp=r2(spl.reduce((a,h)=>a+h.disc,0)),spNet=r2(spl.reduce((a,h)=>a+h.pay,0));
+const remG=r2(sub-spG);let d=t.d?(t.d.t==='%'?remG*t.d.v/100:t.d.v):0;d=r2(Math.min(d,remG));
+const rp=r2(t.rp?Math.min(25,remG-d):0),reg=r2(Math.max(0,remG-d-rp)),rate=t.type==='dine'?(+cfg.svc||0)/100:0;
+const svR=r2(reg*rate),svE=r2(spNet*rate),vg=r2(reg+svR),isZ=!!t.zr;
+const zr=isZ?r2(vg/1.12):0,vs=isZ?0:r2(vg/1.12),vat=isZ?0:r2(vg-vs),zv=isZ?r2(vg-zr):0,ex=r2(spNet+svE),sv=r2(svR+svE),tot=r2(vs+vat+zr+ex);
+const cr=t.cr&&t.cust?r2(Math.min(t.cust.cr,tot)):0;
+return{sub,d,rp,sp,spv,spl,sv,vs,vat,tx:vat,ex,zr,zv,tot,cr,due:r2(tot-cr)}}
+let pinBuf='';
+function login(){pinBuf='';pinUI()}
+function pinUI(){const dots=[0,1,2,3].map(i=>`<span style="width:16px;height:16px;border-radius:50%;border:2px solid var(--ink);background:${i<pinBuf.length?'var(--ink)':'transparent'}"></span>`).join('');
+modal(`<h2 style="text-align:center">My POS</h2><p class="mut" style="text-align:center">${SHOP}</p><p class="mut" style="text-align:center">Enter your PIN to sign in</p><div class="row" style="justify-content:center;gap:14px;margin:14px 0">${dots}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${[1,2,3,4,5,6,7,8,9,'C',0,'⌫'].map(k=>`<button style="font-size:22px;padding:14px" onclick="key('${k}')">${k}</button>`).join('')}</div>`)}
+function key(k){k=String(k);if(k==='C')pinBuf='';else if(k==='⌫')pinBuf=pinBuf.slice(0,-1);else if(pinBuf.length<4)pinBuf+=k;
+if(pinBuf.length===4){const u=staff.find(x=>x.pin===pinBuf);pinBuf='';if(u){me=u;closeModal();toast('Signed in as '+u.role);render();if(!shift.open)openShiftModal();return}toast('Wrong PIN. Try again.')}
+pinUI()}
+addEventListener('keydown',e=>{if(me||GUEST||DISP||!$('#modal').classList.contains('on'))return;if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='Backspace')key('⌫')});
+function signOut(){closeModal();sheetOpen=false;me=null;auOpen=false;render()}
+function mgr(cb){APPR=null;if(me.role==='Admin')return cb();modal(`<h2>Admin PIN needed</h2><input id="mp" type="password" inputmode="numeric"><div class="row" style="margin-top:10px"><button class="p" id="mok">Approve</button><button onclick="closeModal()">Cancel</button></div>`);$('#mok').onclick=()=>{const u=staff.find(x=>x.role==='Admin'&&x.pin===$('#mp').value);if(u){APPR=u.name;closeModal();cb()}else toast('Wrong admin PIN.')}}
+function newTicket(k,type){if(!tickets[k])tickets[k]={k,type,lines:[],staff:me.id};cur=k;render()}
+function addTake(type){const k=(type==='take'?'Takeout #':'Delivery #')+(++seq);newTicket(k,type)}
+function tap(id){const it=menu.find(x=>x.id===id);if(!cur)return toast('Pick a table, takeout or delivery first.');if(is86(it))return toast(it.n+" is 86'd today.");if(it.s<=0)return toast(it.n+' is sold out.');
+if(!it.o)return add(it,'',0);
+if(it.o==='d')modal(`<h2>${it.e} ${it.n}</h2><p class="mut">Choose size</p><div class="row">${sizes.map(s=>`<button class="p" onclick="add(menu[${menu.indexOf(it)}],'${s[0]}',${s[1]});closeModal()">${s[0]} ${s[1]?'+'+m$(s[1]):''}</button>`).join('')}</div>`);
+else modal(`<h2>${it.e} ${it.n}</h2><p class="mut">Add-ons</p>${adds.map((a,i)=>`<label class="line"><input type="checkbox" style="width:auto" class="ad" value="${i}"><span class="n">${a[0]}</span>${a[1]?'+'+m$(a[1]):''}</label>`).join('')}<div class="row" style="margin-top:10px"><button class="p" onclick="addMods(${id})">Add to ticket</button></div>`)}
+function addMods(id){const it=menu.find(x=>x.id===id),ch=[...document.querySelectorAll('.ad:checked')].map(c=>adds[+c.value]);add(it,ch.map(c=>c[0]).join(', '),ch.reduce((a,c)=>a+c[1],0));closeModal()}
+function add(it,mod,extra){const t=tickets[cur],p=it.p+extra,seat=t.type==='dine'?(t.seat||1):1,l=t.lines.find(x=>x.id===it.id&&x.mod===mod&&!x.sent&&(x.seat||1)===seat);if(l)l.q++;else t.lines.push({id:it.id,n:it.n,mod,p,q:1,sent:false,seat});render()}
+function qty(i,d){const t=tickets[cur],l=t.lines[i];if(l.sent&&d<0)return mgr(()=>askReason('void','Void sent item',r=>{log('void','Void item',t.k+' · 1 × '+l.n+(l.mod?' ('+l.mod+')':'')+' · '+r,l.p);l.q+=d;if(l.q<=0)t.lines.splice(t.lines.indexOf(l),1);render()}));l.q+=d;if(l.q<=0)t.lines.splice(i,1);render()}
+function send(){const t=tickets[cur],n=t.lines.filter(l=>!l.sent);if(!n.length)return toast('Nothing new to send.');
+kds.push({id:++seq,k:t.k,type:t.type,lines:n.map(l=>({n:l.n,mod:l.mod,q:l.q})),st:'new',at:new Date()});n.forEach(l=>l.sent=true);toast('Sent to kitchen.');render()}
+function setDisc(){const t=tickets[cur];modal(`<h2>Discount</h2><div class="row"><select id="dt" style="width:auto"><option value="%">Percent</option><option value="$">Amount (₱)</option></select><input id="dv" type="number" min="0" style="width:120px" placeholder="Value"></div><div class="row" style="margin-top:10px"><button class="p" onclick="applyDisc()">Apply</button>${t.d?'<button class="d" onclick="rmDisc()">Remove</button>':''}</div><p class="mut">Over 20% or ₱300 needs an admin PIN. For Senior or PWD, use the SC / PWD button instead.</p>`)}
+function applyDisc(){const t=$('#dt').value,v=+$('#dv').value;if(!(v>0))return toast('Enter a discount value.');if(t==='%'&&v>100)return toast('Percent cannot be more than 100.');const go=()=>askReason('disc','Discount reason',r=>{const k=tickets[cur];k.d={t,v,r};log('disc','Discount',k.k+' · '+(t==='%'?v+'%':m$(v))+' · '+r,calc(k).d);render()});(t==='%'&&v>20)||(t==='$'&&v>300)?mgr(go):go()}
+function rmDisc(){const k=tickets[cur];if(!k||!k.d)return;log('disc','Discount removed',k.k+' · '+(k.d.t==='%'?k.d.v+'%':m$(k.d.v)),0);k.d=null;closeModal();render()}
+function custModal(){modal(`<h2>Customer</h2><input id="cp" placeholder="Phone (try 0123 or 0456)"><div class="row" style="margin:10px 0"><button class="p" onclick="findC()">Find</button></div><div id="cn" style="display:none"><input id="cname" placeholder="New customer name"><button class="p" style="margin-top:8px" onclick="mkC()">Create member</button></div>`)}
+function findC(){const c=custs.find(x=>x.ph===$('#cp').value.trim());if(c){tickets[cur].cust=c;closeModal();render();toast('Added '+c.n)}else{$('#cn').style.display='block';toast('No match. Create a new member.')}}
+function mkC(){const n=$('#cname').value.trim(),ph=$('#cp').value.trim();if(!n||!ph)return toast('Name and phone required.');const c={ph,n,pts:0,cr:0};custs.push(c);tickets[cur].cust=c;closeModal();render()}
+function mergeModal(){const occ=tables.filter(k=>k!==cur&&tickets[k]),emp=tables.filter(k=>k!==cur&&!tickets[k]);
+modal(`<h2>${cur}: merge or move</h2><p class="mut">Merge brings another table's items into ${cur}.</p><div class="row">${occ.map(k=>`<button class="chip busy" onclick="mergeT('${k}')">Merge ${k}</button>`).join('')||'<span class="mut">No other open tables.</span>'}</div><p class="mut" style="margin-top:12px">Move this ticket to an empty table.</p><div class="row">${emp.map(k=>`<button class="chip" onclick="moveT('${k}')">Move to ${k}</button>`).join('')}</div><div style="margin-top:12px"><button onclick="closeModal()">Cancel</button></div>`)}
+function mergeT(k){const a=tickets[cur],b=tickets[k],off=a.ns||1;(a.sp||[]).forEach(h=>{if(h.seat===0)h.seat=1});(b.sp||[]).forEach(h=>{a.sp=a.sp||[];a.sp.push({...h,seat:h.seat===0?off+1:h.seat+off})});b.lines.forEach(l=>{l.seat=(l.seat||1)+off;const x=a.lines.find(y=>y.id===l.id&&y.mod===l.mod&&y.sent===l.sent&&(y.seat||1)===l.seat);if(x)x.q+=l.q;else a.lines.push(l)});a.ns=Math.min(8,off+(b.ns||1));if(!a.cust&&b.cust)a.cust=b.cust;if(!a.d&&b.d)a.d=b.d;kds.forEach(x=>{if(x.k===k&&x.st!=='done')x.k=cur});delete tickets[k];closeModal();render();toast(k+' merged into '+cur)}
+function moveT(k){const t=tickets[cur];delete tickets[cur];t.k=k;tickets[k]=t;kds.forEach(x=>{if(x.k===cur&&x.st!=='done')x.k=k});cur=k;closeModal();render();toast('Moved to '+k)}
+function voidT(){const t=tickets[cur];if(!t)return;if(!t.lines.length){delete tickets[cur];cur=null;return render()}mgr(()=>askReason('void','Void ticket '+t.k,r=>{log('void','Void ticket',t.k+' · '+t.lines.map(l=>l.q+' × '+l.n).join(', ')+' · '+r,calc(t).tot);delete tickets[t.k];cur=null;render()}))}
+function checkout(){const ps=pendSplit;pendSplit=0;const t=tickets[cur],c=calc(t);if(!t.lines.length)return toast('Ticket is empty.');if(!shift.open)return openShiftModal();if(cfg.serTo&&orSeq>=cfg.serTo)return toast('The OR series is used up. Enter the new series in Settings.');pay={t,c,list:[],split:ps?{shares:shares(c.due,ps)}:null};paying=c.due;save();payUI()}
+function shares(due,n){const cents=Math.round(due*100),b=Math.floor(cents/n),rm=cents-b*n;return [...Array(n)].map((_,i)=>(b+(i<rm?1:0))/100)}
+const paidSum=()=>r2(pay.list.reduce((a,p)=>a+p.a,0));
+function shareInfo(){const s=pay.split;if(!s)return null;let cum=0;const P=paidSum(),cums=s.shares.map(x=>cum=r2(cum+x)),gi=cums.filter(x=>x<=P+.004).length;return{gi,n:s.shares.length,want:gi<s.shares.length?r2(cums[gi]-P):0}}
+function payUI(){const{t,c,list}=pay,paid=paidSum(),rem=Math.max(0,r2(c.due-paid)),si=shareInfo(),def=si&&si.gi<si.n?Math.min(si.want,rem):rem;
+modal(`<h2>Pay ${m$(c.due)}</h2>${c.cr?`<p class="mut">Store credit applied: ${m$(c.cr)}</p>`:''}${si?`<div class="card" style="background:var(--soft);margin-bottom:8px"><b>${si.gi<si.n?'Guest '+(si.gi+1)+' of '+si.n+' · share '+m$(pay.split.shares[si.gi]):'All shares are covered'}</b></div>`:''}${list.map(p=>`<div class="line"><span class="n">${p.m}${p.ref?'<small>Ref '+esc(p.ref)+'</small>':''}</span>${m$(p.a)}</div>`).join('')}<p><b>Remaining: ${m$(rem)}</b></p>
+<div class="row"><select id="pm" style="width:auto" onchange="payRef()"><option>Cash</option><option>Card</option><option>GCash</option><option>Maya</option></select><input id="pa" type="number" step="0.01" value="${def.toFixed(2)}" style="width:110px"><button class="p" onclick="addPay()">Add payment</button></div>
+<div id="prw" style="display:none;margin-top:8px"><input id="pr" autocomplete="off"><small class="mut" id="prh"></small></div>
+<div class="row" style="margin-top:12px"><button class="p" ${rem>0.004?'disabled':''} onclick="finish()">Complete sale</button><button onclick="closeModal()">Back</button>${list.length?'<button class="d" onclick="undoPay()">Undo last</button>':''}</div><p class="mut">Add more than one payment to split across methods or guests.</p>`)}
+function payRef(){const m=$('#pm').value,w=$('#prw'),e=m==='GCash'||m==='Maya';w.style.display=e?'block':'none';if(e){$('#pr').placeholder=m==='GCash'?'GCash Ref No. (13 digits)':'Maya reference ID';$('#prh').textContent="Copy it from the customer's confirmation screen."}}
+function refUsed(ref){if(pay&&pay.list.some(p=>p.ref===ref))return 'this sale';const o=orders.find(o=>o.pay.some(p=>p.ref===ref));return o?'OR '+fmtOR(o.orNo):''}
+function addPay(){const a=r2(+$('#pa').value),m=$('#pm').value;if(!(a>0))return toast('Enter an amount.');const rem=r2(pay.c.due-paidSum());if(m!=='Cash'&&a>rem+.004)return toast('Card, GCash and Maya cannot exceed the balance.');let ref='';
+if(m==='GCash'||m==='Maya'){ref=($('#pr').value||'').replace(/[\s-]/g,'').toUpperCase();if(m==='GCash'&&!/^\d{13}$/.test(ref))return toast('A GCash reference is 13 digits.');if(m==='Maya'&&!/^[A-Z0-9]{6,24}$/.test(ref))return toast('Enter the Maya reference ID.');const u=refUsed(ref);if(u)return toast('That reference was already used on '+u+'.')}
+pay.list.push({m,a,ref});payUI()}
+function undoPay(){pay.list.pop();payUI()}
+function finish(){const{t,c,list}=pay,paid=list.reduce((a,p)=>a+p.a,0),chg=Math.max(0,r2(paid-c.due));
+t.lines.forEach(l=>{const it=menu.find(x=>x.id===l.id);if(it)it.s=Math.max(0,it.s-l.q)});
+let pts=0;if(t.cust){const cu=t.cust;if(t.rp)cu.pts-=50;cu.cr=r2(cu.cr-c.cr);pts=Math.floor(c.tot/20);cu.pts+=pts;if(tier(cu)==='Gold')cu.cr=r2(cu.cr+c.tot*.02)}
+const o={id:++seq,k:t.k,type:t.type,lines:t.lines.map(l=>({...l})),c,pay:list.map(p=>({...p})),chg,cust:t.cust?t.cust.n:'',pts,staff:me.name,at:new Date(),ref:false,shift:shift.id,or:t.or||null,orNo:++orSeq,zr:t.zr||null};
+orders.unshift(o);delete tickets[t.k];cur=null;pay=null;paying=null;lastSale={at:Date.now(),tot:c.tot,chg,pts,cust:t.cust?t.cust.n:'',k:t.k};render();receipt(o)}
+function hdr(){const v=(a,b)=>b?`${a}: ${esc(b)}`:`<span style="opacity:.6">${a}: not set</span>`;return `<h2 style="text-align:center">${SHOP}</h2><p class="mut" style="text-align:center;margin:2px 0">${cfg.reg?esc(cfg.reg)+'<br>':''}${ADDR}<br>Tel ${PHONE}<br><b>${v('VAT REG TIN',cfg.tin)}</b>${cfg.min||cfg.sn?'<br>'+[cfg.min&&'MIN '+esc(cfg.min),cfg.sn&&'S/N '+esc(cfg.sn)].filter(Boolean).join(' · '):''}<br>${v('PTU No.',cfg.ptu)}<br>${v('ATP No.',cfg.atp)}<br>${cfg.serTo?'Series '+fmtOR(cfg.serFrom)+' to '+fmtOR(cfg.serTo):'<span style="opacity:.6">Series: not set</span>'}</p>`}
+function totRows(c,rc){return `<div><span>Subtotal (VAT incl.)</span>${m$(c.sub)}</div>${c.spv?`<div><span>Less: VAT on SC/PWD</span>−${m$(c.spv)}</div>`:''}${c.sp?`<div><span>SC/PWD discount 20%</span>−${m$(c.sp)}</div>`:''}${c.d?`<div><span>Discount</span>−${m$(c.d)}</div>`:''}${c.rp?`<div><span>Points redeemed</span>−${m$(c.rp)}</div>`:''}${c.zv?`<div><span>Less: VAT (zero-rated)</span>−${m$(c.zv)}</div>`:''}${c.sv?`<div><span>Service charge ${+cfg.svc}%</span>${m$(c.sv)}</div>`:''}${rc?`<div class="g"><span>Total</span>${m$(c.tot)}</div>${c.cr?`<div><span>Store credit</span>−${m$(c.cr)}</div><div><span>Amount due</span>${m$(c.due)}</div>`:''}`:`${c.cr?`<div><span>Store credit</span>−${m$(c.cr)}</div>`:''}<div class="g"><span>Total</span>${m$(c.due)}</div>`}`}
+const vatBox=c=>c.vs==null?'':`<div class="tot" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:6px;font-size:14px"><div><span>VATable Sales</span>${m$(c.vs)}</div><div><span>VAT 12%</span>${m$(c.vat)}</div><div><span>VAT-Exempt Sales</span>${m$(c.ex)}</div><div><span>Zero-Rated Sales</span>${m$(c.zr)}</div></div>`;
+function receipt(o,re){const c=o.c,sp=c.spl||[];modal(`${hdr()}<h3 style="text-align:center;letter-spacing:1px;margin-top:8px">OFFICIAL RECEIPT${re?' · COPY':''}</h3><p class="mut" style="text-align:center">OR No. ${fmtOR(o.orNo)} · Ref #${o.id}</p><p class="mut">${esc(o.k)} · ${o.at.toLocaleString()} · Cashier ${esc(o.staff)}${o.cust?' · '+esc(o.cust):''}</p>${o.or?`<div style="border:1px dashed var(--line);border-radius:8px;padding:8px;margin:8px 0;font-size:14px"><b>Sold to:</b> ${esc(o.or.name)}<br>${o.or.addr?'Address: '+esc(o.or.addr)+'<br>':''}${o.or.tin?'TIN: '+esc(o.or.tin):''}</div>`:''}${o.lines.map(l=>`<div class="line"><span class="n">${l.q} × ${l.n}<small>${l.mod}</small></span>${m$(l.p*l.q)}</div>`).join('')}<div class="tot" style="margin-top:8px">${totRows(c,1)}</div>${vatBox(c)}${sp.length?`<div style="border:1px dashed var(--line);border-radius:8px;padding:8px;margin:8px 0;font-size:13px"><b>Senior / PWD discount</b>${sp.map(h=>`<div style="margin-top:6px">${h.type==='SC'?'Senior Citizen':'PWD'}: ${esc(h.name)}<br>ID No.: ${esc(h.id)}<br>Signature: ______________</div>`).join('')}</div>`:''}${o.zr?`<p class="mut">Zero-rated sale: ${esc(o.zr.ref)}</p>`:''}<p>${o.pay.map(p=>p.m+' '+m$(p.a)+(p.ref?' · Ref '+esc(p.ref):'')).join('<br>')}${o.chg?'<br>Change '+m$(o.chg):''}</p>${o.pts?`<p class="tag">+${o.pts} points earned</p>`:''}<p class="mut" style="text-align:center">Prices include 12% VAT.<br>THIS SERVES AS YOUR OFFICIAL RECEIPT.${cfg.sup?'<br>'+esc(cfg.sup):''}</p><div class="row noprint"><button class="p" onclick="window.print()">Print receipt</button><button onclick="orModal(${o.id})">${o.or?'Edit buyer details':'Add buyer details'}</button><button onclick="closeModal()">Done</button></div>`)}
+const fl='display:block;margin:10px 0 3px;color:var(--mute);font-size:13px';
+function fmtTin(v){const d=String(v).replace(/\D/g,'');if(!d)return'';if(d.length<9||d.length>14)return null;return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6,9)+(d.length>9?'-'+d.slice(9):'')}
+function orModal(target){const t=target==='ticket'?tickets[cur]:orders.find(x=>x.id===+target),v=t.or||{name:target==='ticket'&&t.cust?t.cust.n:'',addr:'',tin:''};
+modal(`<h2>Buyer details</h2><p class="mut">For customers who want their name, address and TIN on the official receipt.</p><label style="${fl}">Name or company</label><input id="on" value="${esc(v.name)}" placeholder="Juan Dela Cruz or Company Inc."><label style="${fl}">Address</label><input id="oa" value="${esc(v.addr)}" placeholder="Street, barangay, city"><label style="${fl}">TIN</label><input id="ot" inputmode="numeric" value="${esc(v.tin)}" placeholder="000-000-000-00000"><div class="row" style="margin-top:14px"><button class="p" onclick="saveOR('${target}')">${target==='ticket'?'Save buyer details':'Save'}</button>${t.or&&target==='ticket'?'<button class="d" onclick="tickets[cur].or=null;closeModal();render()">Remove</button>':''}<button onclick="closeModal()">Cancel</button></div>`)}
+function saveOR(target){const name=$('#on').value.trim(),addr=$('#oa').value.trim(),raw=$('#ot').value.trim();if(!name)return toast('Enter the customer name or company.');const tin=fmtTin(raw);if(tin===null)return toast('TIN needs 9 to 14 digits.');const or={name,addr,tin};
+if(target==='ticket'){tickets[cur].or=or;closeModal();render();toast('Buyer details saved')}
+else{const o=orders.find(x=>x.id===+target);o.or=or;if(!o.orNo)o.orNo=++orSeq;save();closeModal();render();receipt(o)}}
+function refund(id){const o=orders.find(x=>x.id===id);if(!o||o.ref)return;mgr(()=>askReason('refund','Refund receipt #'+id,r=>{o.ref=true;o.refBy=me.name;o.refWhy=r;o.lines.forEach(l=>{const it=menu.find(x=>x.id===l.id);if(it)it.s+=l.q});log('refund','Refund','Receipt #'+id+' · OR '+fmtOR(o.orNo)+' · '+o.k+' · '+r,o.c.tot);toast('Order #'+id+' refunded.');render()}))}
+function simDelivery(){const av=menu.filter(i=>!i.hid&&!unavail(i));if(!av.length)return toast('No items are available.');const it=av[Math.floor(Math.random()*av.length)],k='Delivery #'+(++seq);tickets[k]={k,type:'del',lines:[{id:it.id,n:it.n,mod:'',p:it.p,q:1+Math.floor(Math.random()*2),sent:false,seat:1}],staff:me.id,pending:true};toast('New delivery order: '+k);render()}
+function acc(k){tickets[k].pending=false;cur=k;view='pos';render()}
+function step(id){const o=kds.find(x=>x.id===id);o.st=o.st==='new'?'cooking':o.st==='cooking'?'ready':'done';render()}
+function stock(id,d){const it=menu.find(x=>x.id===id),old=it.s;it.s=Math.max(0,it.s+d);if(d<0)log('other','Stock reduced',it.n+' · '+old+' to '+it.s,0);render()}
+const tabs=[['pos','Register'],['kds','Kitchen'],['qr','QR order'],['cds','Customer display'],['orders','Orders'],['stock','Inventory'],['dash','Dashboard'],['outlets','Outlets'],['shift','Shift']];
+let orSeq=0,lastSale=null,paying=null,quiet=false,stale=false,lastHb=0,lastSync=null,cdsFull=false;
+const bc=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('mizzy2-pos'):null;
+function snap(){return {menu,catList,cfg,audit,custs,orders,kds,seq,shift,shifts,orSeq,cur,rollouts,lastSale,paying,tickets:Object.fromEntries(Object.entries(tickets).map(([k,t])=>[k,{...t,cust:t.cust?t.cust.ph:null}]))}}
+function save(){const d=snap();try{localStorage.setItem('mizzy2',JSON.stringify(d))}catch(e){}try{bc&&bc.postMessage({t:'state',d})}catch(e){}}
+function apply(d,keep){if(!d||!d.menu)return;menu=d.menu;catList=d.catList||catList;cfg={...cfgDef,...(d.cfg||{})};audit=d.audit||[];custs=d.custs;seq=d.seq;orSeq=d.orSeq||0;shift=d.shift&&d.shift.id?d.shift:{open:false};shifts=d.shifts||[];orders=d.orders.map(o=>({...o,at:new Date(o.at)}));kds=d.kds.map(o=>({...o,at:new Date(o.at)}));rollouts=d.rollouts||[];lastSale=d.lastSale||null;paying=d.paying||null;tickets=Object.fromEntries(Object.entries(d.tickets).map(([k,t])=>[k,{...t,cust:t.cust?custs.find(c=>c.ph===t.cust):undefined}]));cur=keep?(cur&&tickets[cur]?cur:null):(d.cur&&tickets[d.cur]?d.cur:null);lastSync=new Date()}
+function load(){try{apply(JSON.parse(localStorage.getItem('mizzy2')||'null'))}catch(e){}}
+function incoming(d){quiet=true;try{apply(d,!DISP);if(!DISP&&!GUEST&&$('#modal').classList.contains('on'))stale=true;else render()}finally{quiet=false}}
+function hb(){lastHb=Date.now();updateBadge()}
+function updateBadge(){const l=Date.now()-lastHb<6000,e=$('#dl'),d=$('#ds');if(e)e.style.display=l?'inline':'none';if(d)d.textContent=l?'Linked and syncing live':'No second window detected'}
+if(bc)bc.onmessage=e=>{const m=e.data||{};if(m.t==='state')incoming(m.d);else if(m.t==='hb'&&!DISP)hb();else if(m.t==='ask'&&!DISP&&!GUEST&&me)save()};
+addEventListener('storage',e=>{if(e.key==='mizzy2'&&e.newValue){try{incoming(JSON.parse(e.newValue))}catch(x){}}});
+function paintCf(){const o=$('#cf');if(!o)return;if(cdsFull){o.style.display='block';o.innerHTML='<button class="p" style="position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:12px" onclick="cdsFull=false;paintCf()">Exit display</button>'+vCds()}else{o.style.display='none';o.innerHTML='';try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}}}
+function fs(){try{const o=$('#cf');o.requestFullscreen&&o.requestFullscreen().catch(()=>{})}catch(e){}}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&cdsFull){cdsFull=false;paintCf()}});
+function render(){if(GUEST||DISP){$('#bn').style.display='none'}if(GUEST){$('header').style.display='none';$('#app').innerHTML=vGuest();return}if(DISP){$('header').style.display='none';$('#app').innerHTML=vCds();return}if(!quiet)save();if(!me){$('#bn').style.display='none';$('#me').textContent='';sheetOpen=false;paintSheet();if(!$('#modal').classList.contains('on'))login();return}$('#me').textContent=me.role;
+$('#bn').style.display='grid';$('#bn').innerHTML=bottomNav();
+$('#app').innerHTML=({pos:vPos,kds:vKds,orders:vOrders,stock:vStock,dash:vDash,shift:vShift,qr:vQr,cds:cdsTab,outlets:vOutlets,menu:vMenu,audit:vAudit,settings:vSettings})[view]();paintSheet();paintCf()}
+function vPos(){const t=cur?tickets[cur]:null,c=t?calc(t):null;const cb=t&&!t.pending&&t.lines.length?`<button class="cartbar" onclick="document.getElementById('tk').scrollIntoView({behavior:'smooth'})">🛒 ${t.lines.reduce((a,l)=>a+l.q,0)} items · ${m$(c.due)} · View ticket</button>`:'';
+const items=menu.filter(i=>!i.hid&&(cat==='All'||i.c===cat)&&i.n.toLowerCase().includes(q.toLowerCase()));
+const open=Object.values(tickets).filter(x=>!tables.includes(x.k));
+const nb=me&&me.role==='Admin'&&(!cfg.tin||!cfg.ptu||!cfg.serTo)?`<div class="card" style="margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>BIR details are incomplete.</b><span class="mut" style="flex:1">Receipts need your TIN, permit and OR series to be usable.</span><button class="p" onclick="go('settings')">Open settings</button></div>`:'';
+const seatBar=t&&!t.pending&&t.type==='dine'?`<div class="row" style="margin:6px 0"><span class="mut">Seat</span>${[...Array(t.ns||1)].map((_,i)=>`<button class="chip ${(t.seat||1)===i+1?'on':''}" onclick="setSeat(${i+1})">${i+1}</button>`).join('')}${(t.ns||1)<8?'<button class="chip" onclick="addSeat()" aria-label="Add seat">+</button>':''}</div>`:'';
+const nSp=t?(t.sp||[]).length:0;
+return `${nb}${shift.open?'':'<div class="card" style="margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>Shift is closed.</b><span class="mut" style="flex:1">Open a shift before charging customers.</span><button class="p" onclick="openShiftModal()">Open shift</button></div>'}<div class="pos"><section class="card"><div class="row">${tables.map(k=>`<button class="chip ${cur===k?'on':(tickets[k]||hasKids(k))?'busy':''}" onclick="newTicket('${k}','dine')">${k}</button>`).join('')}<button class="chip p" onclick="addTake('take')">+ Takeout</button><button class="chip p" onclick="addTake('del')">+ Delivery</button></div>
+${open.length?`<div class="row" style="margin-top:8px">${open.map(x=>`<button class="chip ${cur===x.k?'on':'busy'}" onclick="cur='${x.k}';render()">${x.k}${x.pending?' · new':''}</button>`).join('')}</div>`:''}
+<div class="row" style="margin-top:10px">${['All',...catList].map(x=>`<button class="chip ${cat===x?'on':''}" onclick="cat='${x}';render()">${x}</button>`).join('')}<input placeholder="Search menu" value="${esc(q)}" oninput="q=this.value;render();const s=$('#sq');s.focus();s.setSelectionRange(q.length,q.length)" id="sq" style="flex:1;min-width:120px"></div>
+<div class="grid">${items.map(i=>{const o=is86(i),lo=crit(i)&&i.s>0&&!o;return `<button class="tile ${i.s<=0||o?'out':''} ${lo?'crit':''}" onclick="tap(${i.id})"><span class="e">${i.e}</span><b>${i.n}</b><small>${m$(i.p)} · ${o?"86'd today":i.s>0?(lo?'Only '+i.s+' left':i.s+' left'):'Sold out'}</small></button>`}).join('')||'<p class="mut">No items match your search.</p>'}</div></section>
+<aside class="card" id="tk">${t?(t.pending?`<h2>${t.k}</h2><p>Delivery order waiting.</p><button class="p" onclick="acc('${t.k}')">Accept order</button>`:`<div class="row" style="justify-content:space-between"><h2>${t.k}</h2><span class="tag">${t.type==='dine'?'Dine-in':t.type==='take'?'Takeout':'Delivery'}</span></div>${seatBar}
+${t.lines.length?t.lines.map((l,i)=>`<div class="line"><div class="n">${l.n}${l.sent?' <span class="tag">sent</span>':''}${l.qr?' <span class="tag w">QR</span>':''}${t.type==='dine'&&(t.ns||1)>1?` <button class="tag" style="border:1px solid var(--line)" onclick="cycSeat(${i})" aria-label="Change seat">S${l.seat||1}</button>`:''}<small>${l.mod||''} ${m$(l.p)}</small></div><div class="q"><button onclick="qty(${i},-1)">−</button>${l.q}<button onclick="qty(${i},1)">+</button></div></div>`).join(''):'<p class="mut">Tap menu items to start this order.</p>'}
+<div class="row" style="margin:10px 0"><button onclick="custModal()">${t.cust?esc(t.cust.n)+' · '+tier(t.cust)+' · '+t.cust.pts+' pts':'Add customer'}</button><button onclick="setDisc()">${t.d?'Discount '+(t.d.t==='%'?t.d.v+'%':m$(t.d.v)):'Discount'}</button><button class="${nSp?'p':''}" onclick="spModal()">${nSp?'SC/PWD · '+nSp:'SC / PWD'}</button><button class="${t.or?'p':''}" onclick="orModal('ticket')">${t.or?'Buyer · '+esc(t.or.name):'Buyer TIN'}</button><button class="${t.zr?'p':''}" onclick="zrModal()">${t.zr?'Zero-rated ✓':'Zero-rated'}</button>${t.cust&&t.cust.pts>=50?`<button class="${t.rp?'p':''}" onclick="tickets[cur].rp=!tickets[cur].rp;render()">${t.rp?'Points on':'Use 50 pts'}</button>`:''}${t.cust&&t.cust.cr>0?`<button class="${t.cr?'p':''}" onclick="tickets[cur].cr=!tickets[cur].cr;render()">Credit ${m$(t.cust.cr)}</button>`:''}</div>
+<div class="tot">${totRows(c)}</div>
+<div class="row" style="margin-top:10px"><button onclick="send()" style="flex:1">Send to kitchen</button><button class="p" onclick="checkout()" style="flex:1">Charge</button></div><div class="row" style="margin-top:8px">${t.type==='dine'&&!t.parent?'<button onclick="mergeModal()">Merge or move table</button>':''}<button onclick="splitModal()">Split bill</button><button class="d" onclick="voidT()">Void ticket</button></div>`):'<h2>No ticket open</h2><p class="mut">Choose a table, takeout or delivery to start an order.</p>'}</aside></div>${cb}`}
+function vKds(){const col=(s,l)=>`<div class="card"><h3>${l}</h3>${kds.filter(k=>k.st===s).map(k=>`<div class="line" style="align-items:flex-start"><div class="n"><b>${k.k}</b> <small>${k.at.toLocaleTimeString()}</small>${k.lines.map(l=>`<div>${l.q} × ${l.n}${l.mod?' <small>'+l.mod+'</small>':''}</div>`).join('')}</div><button class="p" onclick="step(${k.id})">${s==='new'?'Start':s==='cooking'?'Ready':'Served'}</button></div>`).join('')||'<p class="mut">Nothing here.</p>'}</div>`;
+return `<div class="row" style="margin-bottom:10px"><h2 style="flex:1">Kitchen display</h2><button onclick="simDelivery()">Simulate delivery order</button></div><div class="cols">${col('new','New')}${col('cooking','Cooking')}${col('ready','Ready')}</div>`}
+function vOrders(){return `<div class="card"><h2>Order history</h2>${orders.length?`<table><tr><th>OR no.</th><th>Ticket</th><th>Total</th><th>Paid</th><th>By</th><th></th></tr>${orders.map(o=>`<tr><td>${fmtOR(o.orNo)}<br><small class="mut">#${o.id}</small></td><td>${esc(o.k)}${o.or?' <span class="tag">Buyer</span>':''}${(o.c.spl||[]).length?' <span class="tag w">SC/PWD</span>':''}</td><td>${m$(o.c.tot)}</td><td>${o.pay.map(p=>p.m).join('+')}</td><td>${esc(o.staff)}</td><td>${o.ref?`<span class="tag b" title="${esc(o.refWhy||'')}">Refunded</span>`:`<button onclick="receipt(orders.find(x=>x.id===${o.id}),1)">View</button> <button class="d" onclick="refund(${o.id})">Refund</button>`}</td></tr>`).join('')}</table>`:'<p class="mut">No sales yet. Complete an order from the Register tab.</p>'}</div>`}
+function reorder(){return menu.filter(crit).map(i=>({...i,need:Math.max(1,25-i.s)}))}
+function recv(id){menu.find(x=>x.id===id).s=25;render()}
+function cp(t){try{navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>toast('Copy blocked. Select the text manually.'))}catch(e){toast('Copy not available here.')}}
+function vStock(){const ro=reorder();return `<div class="card" style="margin-bottom:10px"><h3>Reorder list</h3><p class="mut">Items at or below their critical level. Suggested quantity restocks each to 25.</p>${ro.map(i=>`<div class="line"><span class="n">${i.e} ${i.n}<small>${i.s} left · order ${i.need}</small></span><button onclick="recv(${i.id})">Mark received</button></div>`).join('')||'<p class="mut">Nothing to reorder right now.</p>'}${ro.length?`<button class="p" style="margin-top:8px" onclick="cp(reorder().map(i=>i.n+': order '+i.need).join(String.fromCharCode(10)))">Copy list</button>`:''}</div><div class="card"><h2>Inventory</h2><p class="mut">Stock drops with each sale. Items at or below their critical level are flagged.</p><table><tr><th>Item</th><th>Stock</th><th>Adjust</th></tr>${menu.map(i=>`<tr class="${crit(i)?'critr':''}"><td>${i.e} ${i.n}</td><td>${i.s}${i.s<=0?' <span class="tag b">Sold out</span>':crit(i)?' <span class="tag b">Critical</span>':''}</td><td><div class="q"><button onclick="stock(${i.id},-1)">−</button><button onclick="stock(${i.id},5)">+5</button><button onclick="stock(${i.id},20)">+20</button></div></td></tr>`).join('')}</table></div>`}
+function vDash(){const ok=orders.filter(o=>!o.ref),rev=ok.reduce((a,o)=>a+o.c.tot,0),cnt={},pm={},st={};
+ok.forEach(o=>{o.lines.forEach(l=>cnt[l.n]=(cnt[l.n]||0)+l.q);o.pay.forEach(p=>pm[p.m]=(pm[p.m]||0)+p.a);if(o.chg)pm.Cash=(pm.Cash||0)-o.chg;st[o.staff]=(st[o.staff]||0)+o.c.tot});
+const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=top.length?top[0][1]:1,low=menu.filter(crit);
+return `<div class="row" style="margin-bottom:10px"><button class="p" onclick="reportModal()">Daily sales report</button></div><div class="cols"><div class="card"><div class="mut">Sales today</div><div class="kpi">${m$(rev)}</div></div><div class="card"><div class="mut">Orders</div><div class="kpi">${ok.length}</div></div><div class="card"><div class="mut">Average ticket</div><div class="kpi">${m$(ok.length?rev/ok.length:0)}</div></div></div>
+<div class="cols" style="margin-top:10px"><div class="card"><h3>Best sellers</h3>${top.map(t=>`<div>${t[0]} · ${t[1]}</div><div class="bar" style="width:${t[1]/mx*100}%"></div>`).join('')||'<p class="mut">Sell something to see rankings.</p>'}</div>
+<div class="card"><h3>Payment mix</h3>${Object.entries(pm).map(p=>`<div class="line"><span class="n">${p[0]}</span>${m$(p[1])}</div>`).join('')||'<p class="mut">No payments yet.</p>'}<h3 style="margin-top:12px">Staff sales and 3% commission</h3>${Object.entries(st).map(p=>`<div class="line"><span class="n">${p[0]} · ${m$(p[1])}</span>${m$(p[1]*.03)}</div>`).join('')||'<p class="mut">No sales yet.</p>'}</div>
+<div class="card"><h3>Low stock alerts</h3>${low.map(i=>`<div class="line"><span class="n">${i.e} ${i.n}</span><span class="tag ${i.s<=0?'b':'w'}">${i.s} left</span></div>`).join('')||'<p class="mut">All items are well stocked.</p>'}</div></div>`}
+function reportModal(){const ok=orders.filter(o=>!o.ref),sum=f=>r2(ok.reduce((a,o)=>a+f(o.c),0)),pm={},cnt={},st={};
+ok.forEach(o=>{o.lines.forEach(l=>cnt[l.n]=(cnt[l.n]||0)+l.q);o.pay.forEach(p=>pm[p.m]=(pm[p.m]||0)+p.a);if(o.chg)pm.Cash=(pm.Cash||0)-o.chg;st[o.staff]=(st[o.staff]||0)+o.c.tot});
+const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5),tot=sum(c=>c.tot);
+const csv=['or_no,receipt,time,ticket,staff,gross,sc_pwd_discount,discount,service,vatable_sales,vat,vat_exempt,zero_rated,total,payments,references,status',...orders.map(o=>[fmtOR(o.orNo),o.id,new Date(o.at).toISOString(),'"'+o.k+'"',o.staff,o.c.sub.toFixed(2),(o.c.sp||0).toFixed(2),((o.c.d||0)+(o.c.rp||0)).toFixed(2),o.c.sv.toFixed(2),(o.c.vs||0).toFixed(2),(o.c.vat||0).toFixed(2),(o.c.ex||0).toFixed(2),(o.c.zr||0).toFixed(2),o.c.tot.toFixed(2),o.pay.map(p=>p.m).join('+'),o.pay.map(p=>p.ref||'').filter(Boolean).join('+'),o.ref?'refunded':'paid'].join(','))].join('\n');
+const r=(a,b)=>`<div class="line"><span class="n">${a}</span>${b}</div>`;
+modal(`<h2>Daily sales report</h2><p class="mut">${SHOP}<br>TIN ${cfg.tin?esc(cfg.tin):'not set'}<br>${new Date().toDateString()} · prepared by ${me.name}</p>${r('Total sales (VAT incl.)',m$(tot))}${r('Orders',ok.length)}${r('Average ticket',m$(ok.length?tot/ok.length:0))}${orders.length?r('OR numbers',fmtOR(orders[orders.length-1].orNo)+' to '+fmtOR(orders[0].orNo)):''}<h3 style="margin-top:10px">VAT breakdown</h3>${r('VATable sales',m$(sum(c=>c.vs||0)))}${r('VAT 12%',m$(sum(c=>c.vat||0)))}${r('VAT-exempt sales',m$(sum(c=>c.ex||0)))}${r('Zero-rated sales',m$(sum(c=>c.zr||0)))}${r('SC/PWD discounts',m$(sum(c=>c.sp||0)))}${r('Other discounts',m$(sum(c=>(c.d||0)+(c.rp||0))))}${r('Service charge',m$(sum(c=>c.sv||0)))}${r('Refunded orders',orders.length-ok.length)}<h3 style="margin-top:10px">Payments</h3>${Object.entries(pm).map(p=>r(p[0],m$(p[1]))).join('')||'<p class="mut">No payments.</p>'}<h3 style="margin-top:10px">Best sellers</h3>${top.map(t=>r(t[0],t[1])).join('')||'<p class="mut">No sales.</p>'}<h3 style="margin-top:10px">Staff commission (3%)</h3>${Object.entries(st).map(p=>r(p[0],m$(p[1]*.03))).join('')||'<p class="mut">No sales.</p>'}<div class="noprint" style="margin-top:12px"><textarea id="csv" readonly rows="5" style="width:100%;font:12px monospace;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px">${esc(csv)}</textarea><div class="row" style="margin-top:8px"><button class="p" onclick="window.print()">Print report</button><button onclick="cp($('#csv').value)">Copy CSV</button><button onclick="closeModal()">Close</button></div></div>`)}
+const groups=[['Sell',[['pos','🧾','Register'],['qr','📱','QR order'],['cds','🖥️','Customer display'],['orders','📋','Orders']]],['Operations',[['kds','🍳','Kitchen'],['menu','📝','Menu items'],['stock','📦','Inventory']]],['Business',[['dash','📊','Dashboard'],['audit','🛡️','Audit log'],['outlets','🏬','Outlets'],['shift','💵','Shift and cash'],['settings','⚙️','Settings']]]];
+const quick=['pos','kds','orders'],info={};groups.forEach(g=>g[1].forEach(x=>info[x[0]]=x));let sheetOpen=false;
+const kc=()=>kds.filter(k=>k.st!=='done').length;
+const bdg=v=>v==='kds'&&kc()?`<b class="bd">${kc()}</b>`:'';
+function go(v){view=v;sheetOpen=false;render()}
+function bottomNav(){const cq=quick.includes(view);return quick.map(v=>`<button class="${view===v?'on':''}" onclick="go('${v}')"><span>${info[v][1]}</span>${info[v][2]}${bdg(v)}</button>`).join('')+`<button class="${cq&&!sheetOpen?'':'on'}" onclick="sheetOpen=!sheetOpen;paintSheet()"><span>${cq?'☰':info[view][1]}</span>${cq?'More':info[view][2]}</button>`}
+function paintSheet(){const e=$('#sheet'),b=$('#sb');if(!e)return;e.style.display=b.style.display=sheetOpen&&me?'block':'none';if(!sheetOpen||!me){e.innerHTML='';return}
+e.innerHTML=groups.map(g=>`<h3>${g[0]}</h3><div class="sg">${g[1].map(x=>`<button class="${view===x[0]?'on':''}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}${bdg(x[0])}</button>`).join('')}</div>`).join('')}
+function theme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetOpen){sheetOpen=false;paintSheet()}});
+function drawer(){const so=orders.filter(o=>o.shift===shift.id&&!o.ref),cash=so.reduce((a,o)=>a+o.pay.filter(p=>p.m==='Cash').reduce((x,p)=>x+p.a,0)-o.chg,0),ins=shift.ins.reduce((a,b)=>a+b,0),outs=shift.outs.reduce((a,b)=>a+b,0);return{so,cash,ins,outs,exp:shift.float+cash+ins-outs,sales:so.reduce((a,o)=>a+o.c.tot,0)}}
+function openShiftModal(){modal(`<h2>Open shift</h2><p class="mut">Count the cash in the drawer and enter the opening amount. Selling starts once the shift is open.</p><input id="of" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Opening cash amount" autofocus><div class="row" style="margin-top:10px"><button class="p" onclick="openShift()">Open shift</button><button onclick="closeModal()">Not now</button></div>`)}
+function openShift(){const v=$('#of').value;if(v===''||+v<0)return toast('Enter the opening cash amount.');shift={id:++seq,open:true,by:me.role,float:+v,ins:[],outs:[],at:Date.now()};log('other','Shift opened','Opening cash '+m$(+v),0);closeModal();render();toast('Shift opened with '+m$(+v))}
+function cm(i){const a=+$('#ca').value;if(!(a>0))return toast('Enter an amount.');(i?shift.ins:shift.outs).push(a);log('other',i?'Cash pay in':'Cash pay out',m$(a),a);render()}
+function closeShift(){const v=$('#cc').value;if(v==='')return toast('Enter the counted cash.');if(Object.values(tickets).some(t=>t.lines.length))return toast('Finish or void open tickets before closing the shift.');
+const d=drawer(),c=+v,so=d.so,pm={};so.forEach(o=>{o.pay.forEach(p=>pm[p.m]=(pm[p.m]||0)+p.a);if(o.chg)pm.Cash-=o.chg});
+const sm=f=>r2(so.reduce((a,o)=>a+f(o.c),0)),au=audit.filter(a=>a.at>=shift.at),refs=[];so.forEach(o=>o.pay.forEach(p=>{if(p.ref)refs.push({m:p.m,ref:p.ref,a:p.a,or:o.orNo})}));
+const h={id:shift.id,by:shift.by,at:shift.at,closedAt:Date.now(),closedBy:me.role,float:shift.float,expected:d.exp,counted:c,diff:c-d.exp,sales:d.sales,orders:so.length,disc:sm(x=>(x.d||0)+(x.rp||0)),sp:sm(x=>x.sp||0),svc:sm(x=>x.sv||0),tax:sm(x=>x.vat||0),vs:sm(x=>x.vs||0),ex:sm(x=>x.ex||0),zr:sm(x=>x.zr||0),orFrom:so.length?Math.min(...so.map(o=>o.orNo)):0,orTo:so.length?Math.max(...so.map(o=>o.orNo)):0,refunds:orders.filter(o=>o.shift===shift.id&&o.ref).length,pm,refs,cash:d.cash,ins:d.ins,outs:d.outs,au:auSum(au),aul:au.filter(a=>a.type!=='other').slice(0,60)};
+shifts.unshift(h);log('other','Shift closed','Counted '+m$(c)+' vs expected '+m$(d.exp)+' · '+(Math.abs(c-d.exp)<.01?'balanced':(c<d.exp?'short ':'over ')+m$(Math.abs(c-d.exp))),c-d.exp);shift={open:false};render();shiftReport(h)}
+function auditBlock(h){const a=h.au;if(!a)return '';const row=(l,k,m)=>`<div class="line"><span class="n">${l}</span>${a[k].n}${m?' · '+m$(a[k].a):''}</div>`;return `<h3 style="margin-top:10px">Audit summary</h3>${row('Voids','void',1)}${row('Refunds','refund',1)}${row('Discounts','disc',1)}${row('Price changes','price')}${row('Other actions','other')}${(h.aul||[]).length?`<table style="font-size:12px;margin-top:6px"><tr><th>Time</th><th>Who</th><th>Action</th></tr>${h.aul.map(x=>`<tr><td>${new Date(x.at).toLocaleTimeString()}</td><td>${esc(x.who)}${x.appr?'<br><small>OK by '+esc(x.appr)+'</small>':''}</td><td>${esc(x.act)}<br><small>${esc(x.detail)}</small>${x.amt?'<br>'+m$(x.amt):''}</td></tr>`).join('')}</table>`:''}`}
+function shiftReport(h){const r=(a,b)=>`<div class="line"><span class="n">${a}</span>${b}</div>`,fmt=t=>new Date(t).toLocaleString(),dt=Math.abs(h.diff)<.01?'Balanced':(h.diff<0?'Short ':'Over ')+m$(Math.abs(h.diff));
+modal(`${hdr()}<h3 style="text-align:center;margin-top:8px">Shift closing report</h3><p class="mut">Opened ${fmt(h.at)} by ${h.by}<br>Closed ${fmt(h.closedAt)} by ${h.closedBy}</p>${r('Orders',h.orders)}${h.orFrom?r('OR numbers',fmtOR(h.orFrom)+' to '+fmtOR(h.orTo)):''}${r('Total sales (VAT incl.)',m$(h.sales))}<h3 style="margin-top:10px">VAT breakdown</h3>${r('VATable sales',m$(h.vs||0))}${r('VAT 12%',m$(h.tax||0))}${r('VAT-exempt sales',m$(h.ex||0))}${r('Zero-rated sales',m$(h.zr||0))}${r('SC/PWD discounts',m$(h.sp||0))}${r('Other discounts',m$(h.disc||0))}${r('Service charge',m$(h.svc||0))}${r('Refunded orders',h.refunds||0)}<h3 style="margin-top:10px">Payments</h3>${Object.entries(h.pm||{}).map(p=>r(p[0],m$(p[1]))).join('')||'<p class="mut">No payments.</p>'}${(h.refs||[]).length?`<h3 style="margin-top:10px">GCash and Maya references</h3>${h.refs.map(x=>r(x.m+' '+esc(x.ref)+'<small>OR '+fmtOR(x.or)+'</small>',m$(x.a))).join('')}`:''}<h3 style="margin-top:10px">Cash drawer</h3>${r('Opening cash',m$(h.float))}${r('Cash sales',m$(h.cash||0))}${r('Pay in',m$(h.ins||0))}${r('Pay out',m$(h.outs||0))}${r('Expected cash',m$(h.expected))}${r('Counted cash',m$(h.counted))}<p><b>${dt}</b></p>${auditBlock(h)}<p style="margin-top:26px">Signed: ______________________</p><div class="row noprint" style="margin-top:12px"><button class="p" onclick="window.print()">Print report</button><button onclick="closeModal()">Done</button></div>`)}
+let lockMin=2,lastAct=Date.now();try{const v=localStorage.getItem('ladle-lock');if(v!==null)lockMin=+v}catch(e){}
+function setLock(v){lockMin=+v;try{localStorage.setItem('ladle-lock',v)}catch(e){}toast(lockMin?'Auto-lock after '+lockMin+' min':'Auto-lock off')}
+function checkLock(){if(me&&lockMin&&!paying&&Date.now()-lastAct>lockMin*60000){signOut();toast('Locked after inactivity. Enter your PIN.')}}
+['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{lastAct=Date.now()},{passive:true}));
+function shiftHist(){return `<div class="card" style="max-width:520px;margin-top:10px"><h3>Past shifts</h3>${shifts.map((h,i)=>`<div class="line"><span class="n">${new Date(h.at).toLocaleDateString()} · ${new Date(h.at).toLocaleTimeString()} to ${new Date(h.closedAt).toLocaleTimeString()}<small>${h.by} · ${h.orders} orders · sales ${m$(h.sales)} · opened ${m$(h.float)} · counted ${m$(h.counted)}</small></span><span class="tag ${Math.abs(h.diff)<.01?'':h.diff<0?'b':'w'}">${Math.abs(h.diff)<.01?'Balanced':(h.diff<0?'Short ':'Over ')+m$(Math.abs(h.diff))}</span><button onclick="shiftReport(shifts[${i}])">Report</button></div>`).join('')||'<p class="mut">No closed shifts yet.</p>'}<div class="row" style="margin-top:10px"><span>Auto-lock after</span><select style="width:auto" onchange="setLock(this.value)">${[0,1,2,5,10].map(m=>`<option value="${m}" ${m===lockMin?'selected':''}>${m?m+' min':'Off'}</option>`).join('')}</select></div><button class="d" style="margin-top:10px" onclick="mgr(()=>{try{localStorage.removeItem(\'mizzy2\')}catch(e){};location.reload()})">Reset saved data</button><p class="mut">Data is saved automatically on this device.</p></div>`}
+function vShift(){if(!shift.open)return `<div class="card" style="max-width:520px"><h2>Shift closed</h2><p class="mut">Open a shift to start selling. You will be asked for the opening cash amount.</p><button class="p" onclick="openShiftModal()">Open shift</button></div>`+shiftHist();
+const d=drawer();return `<div class="card" style="max-width:520px"><div class="row" style="justify-content:space-between"><h2>Shift open</h2><span class="tag">Since ${new Date(shift.at).toLocaleTimeString()} · ${shift.by}</span></div><div class="tot"><div><span>Opening cash</span>${m$(shift.float)}</div><div><span>Cash sales</span>${m$(d.cash)}</div><div><span>Pay in</span>${m$(d.ins)}</div><div><span>Pay out</span>−${m$(d.outs)}</div><div class="g"><span>Expected in drawer</span>${m$(d.exp)}</div></div><p class="mut">${d.so.length} orders · sales ${m$(d.sales)} this shift</p>
+<div class="row" style="margin-top:10px"><input id="ca" type="number" step="0.01" placeholder="Amount" style="width:120px"><button onclick="cm(1)">Pay in</button><button onclick="cm(0)">Pay out</button></div>
+<h3 style="margin-top:14px">Close shift</h3><div class="row"><input id="cc" type="number" step="0.01" placeholder="Counted cash" style="width:140px"><button class="p" onclick="closeShift()">Close shift</button></div></div>`+shiftHist()}
+function vCds(){const t=cur&&tickets[cur],c=t&&calc(t),fresh=lastSale&&Date.now()-lastSale.at<12000;
+const foot=`<p class="mut" style="text-align:center;font-size:12px;margin-top:14px"><i class="dot${DISP&&!lastSync?' off':''}"></i> Live · ${lastSync?'synced '+lastSync.toLocaleTimeString():'waiting for the register'}</p>`;
+const bar=paying&&t?`<div class="card" style="background:var(--acc);color:#000;text-align:center;margin-bottom:10px"><div>Payment in progress</div><div class="kpi">Amount due ${m$(paying)}</div></div>`:'';
+if(!t||!t.lines.length){if(fresh)return `<div class="card" style="text-align:center;padding:50px 16px"><h1 style="font-size:40px">Thank you${lastSale.cust?', '+esc(lastSale.cust.split(' ')[0]):''}!</h1><p class="kpi">Paid ${m$(lastSale.tot)}</p>${lastSale.chg>0?`<p style="font-size:22px">Change ${m$(lastSale.chg)}</p>`:''}${lastSale.pts?`<p style="font-size:20px">+${lastSale.pts} reward points earned</p>`:''}</div>`+foot;
+return `<div class="card" style="text-align:center;padding:60px 16px"><h1 style="font-size:40px">Welcome to ${SHOP}</h1><p class="mut">${ADDR}<br>Tel ${PHONE}</p><p class="mut" style="font-size:20px">Join our rewards: earn 1 point for every ₱20. Gold members get 2% cashback.</p></div>`+foot}
+return `<div style="max-width:720px;margin:auto">${bar}<div class="card"><h1>${t.k}</h1>${t.lines.map(l=>`<div class="line" style="font-size:22px"><span class="n">${l.q} × ${l.n}<small>${l.mod}</small></span>${m$(l.p*l.q)}</div>`).join('')}<div class="tot" style="font-size:18px;margin-top:10px">${totRows(c)}</div><p>${t.cust?'Hi '+esc(t.cust.n)+'! '+tier(t.cust)+' member · '+t.cust.pts+' points':'<span class="mut">Ask your cashier about joining rewards.</span>'}</p></div>${foot}</div>`}
+function dispLink(){return location.href.split('#')[0]+'#display'}
+function openDisp(){const w=window.open(dispLink(),'_blank');if(!w)toast('Pop-up blocked. Use full screen here, or copy the link.')}
+function cdsTab(){setTimeout(updateBadge,0);return `<div class="card" style="margin-bottom:10px"><h3>Second display</h3><p>Status: <b id="ds">No second window detected</b></p><div class="row"><button class="p" onclick="openDisp()">Open second window</button><button onclick="cdsFull=true;paintCf();fs()">Full screen on this screen</button><button onclick="cp(dispLink())">Copy display link</button></div><p class="mut" style="word-break:break-all;font-size:12px">${esc(dispLink())}</p><p class="mut">Drag the second window to the customer-facing screen. It updates instantly as the cashier works, and works in any window of this browser.</p></div>`+vCds()}
+function vQr(){const v=Object.values(qr.cart),n=v.reduce((a,x)=>a+x.q,0),tot=v.reduce((a,x)=>a+x.q*x.p,0);
+return `<div class="cols"><div class="card"><h2>Table QR ordering</h2><p class="mut">Preview of what a guest sees after scanning a table's QR code. Orders go straight to the kitchen and the table's ticket.</p><div class="row">${tables.map(k=>`<button class="chip ${qr.t===k?'on':''}" onclick="qr.t='${k}';render()">${k}</button>`).join('')}</div>${qrBox()}${qrMenu()}</div>
+<div class="card"><h3>Order for ${qr.t}</h3>${v.map(x=>`<div class="line"><span class="n">${x.q} × ${x.n}</span>${m$(x.q*x.p)}</div>`).join('')||'<p class="mut">Add items from the menu.</p>'}<p><b>Subtotal (VAT incl.): ${m$(tot)}</b></p><button class="p" ${n?'':'disabled'} onclick="placeQr()">Place order</button></div></div>`}
+function qrMenu(){return menu.filter(i=>!i.hid).map(i=>{const na=unavail(i);return `<div class="line"><span class="n">${i.e} ${i.n}<small>${m$(i.p)}${na?' · not available':''}</small></span><div class="q"><button onclick="qrAdd(${i.id},-1)">−</button>${(qr.cart[i.id]||{q:0}).q}<button onclick="qrAdd(${i.id},1)" ${na?'disabled':''}>+</button></div></div>`}).join('')}
+const qrLink=k=>location.href.split('#')[0]+'#table='+k;
+function qrSvg(t){try{const q=qrcode(0,'M');q.addData(t);q.make();return q.createSvgTag({scalable:true,cellSize:4,margin:0})}catch(e){return null}}
+function qrBox(){const l=qrLink(qr.t),v=qrSvg(l);return `<div class="row" style="margin:10px 0;align-items:flex-start"><div class="qrb" style="width:140px">${v||'<small style="color:#000">QR image unavailable</small>'}</div><div style="flex:1;min-width:150px"><b>${qr.t} QR code</b><p class="mut" style="word-break:break-all;font-size:12px">${esc(l)}</p><button onclick="qrSheet()">Print all table QR codes</button></div></div>`}
+function qrSheet(){modal(`<h2 style="text-align:center">Scan to order</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${tables.map(k=>`<div style="text-align:center"><div class="qrb">${qrSvg(qrLink(k))||''}</div><b>${k}</b></div>`).join('')}</div><div class="row noprint" style="margin-top:12px"><button class="p" onclick="window.print()">Print sheet</button><button onclick="closeModal()">Close</button></div>`)}
+function vGuest(){const v=Object.values(qr.cart),n=v.reduce((a,x)=>a+x.q,0),tot=v.reduce((a,x)=>a+x.q*x.p,0);
+return `<div class="card" style="max-width:520px;margin:auto"><h2>${SHOP}</h2><p class="mut" style="font-size:12px">${ADDR}<br>Tel ${PHONE}</p><h3>Table ${GUEST}</h3><p class="mut">Pick your items and place your order. Pay at the table when you are done.</p>${qrMenu()}<p><b>Subtotal (VAT incl.): ${m$(tot)}</b></p><button class="p" style="width:100%" ${n?'':'disabled'} onclick="placeQr()">Place order</button></div>`}
+function qrAdd(id,d){const it=menu.find(x=>x.id===id),x=qr.cart[id]||{q:0,p:it.p,n:it.n};x.q=Math.max(0,x.q+d);if(x.q)qr.cart[id]=x;else delete qr.cart[id];render()}
+function placeQr(){if(GUEST)load();const k=GUEST||qr.t;if(!tickets[k])tickets[k]={k,type:'dine',lines:[],staff:me?me.id:0};const t=tickets[k],nl=[];Object.entries(qr.cart).forEach(([id,x])=>{const l=t.lines.find(y=>y.id==id&&y.mod===''&&y.sent&&y.qr);if(l)l.q+=x.q;else t.lines.push({id:+id,n:x.n,mod:'',p:x.p,q:x.q,sent:true,qr:true});nl.push({n:x.n,mod:'',q:x.q})});kds.push({id:++seq,k,type:'dine',lines:nl,st:'new',at:new Date()});qr.cart={};if(GUEST)save();toast(GUEST?'Order sent. We are preparing it!':'Order sent from '+k);render()}
+function vOutlets(){const ok=orders.filter(o=>!o.ref),sl=ok.reduce((a,o)=>a+o.c.tot,0),rows=[[outlets[0][0],sl,ok.length],...outlets.slice(1).map(o=>[o[0],o[1].s,o[1].o])];
+return `<div class="cols"><div class="card"><h2>Outlet performance</h2><table><tr><th>Outlet</th><th>Sales</th><th>Orders</th><th>Avg</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${m$(r[1])}</td><td>${r[2]}</td><td>${m$(r[2]?r[1]/r[2]:0)}</td></tr>`).join('')}</table><p class="mut">City Mall and Bay Branch show demo figures. This outlet is live.</p></div>
+<div class="card"><h2>HQ price rollout</h2><select id="rp">${menu.map(i=>`<option value="${i.id}">${i.n} (${m$(i.p)})</option>`).join('')}</select><input id="rv" type="number" step="0.01" placeholder="New price" style="margin:8px 0"><button class="p" onclick="pushPrice()">Push to all outlets</button><h3 style="margin-top:12px">Rollout log</h3>${rollouts.slice(0,9).map(r=>`<div class="line"><span class="n">${r.n}: ${m$(r.old)} to ${m$(r.v)}<small>${r.o} · ${r.at}</small></span><span class="tag">Applied</span></div>`).join('')||'<p class="mut">No rollouts yet. Changes need a manager PIN.</p>'}</div></div>`}
+function pushPrice(){const v=+$('#rv').value,it=menu.find(x=>x.id==$('#rp').value);if(!(v>0))return toast('Enter a new price.');mgr(()=>{const old=it.p;it.p=v;log('price','HQ price rollout',it.n+' '+m$(old)+' to '+m$(v)+' (pushed to all outlets)',v-old);outlets.forEach(o=>rollouts.unshift({n:it.n,old,v,o:o[0],at:new Date().toLocaleTimeString()}));render();toast('Price pushed to 3 outlets')})}
+/* ===== Audit log ===== */
+function log(type,act,detail,amt){audit.unshift({at:Date.now(),who:me?me.name:'System',role:me?me.role:'',appr:me&&me.role!=='Admin'?APPR:null,type,act,detail,amt:r2(amt||0)});APPR=null;if(audit.length>3000)audit.length=3000;save()}
+function askReason(kind,title,cb){rcb=cb;modal(`<h2>${esc(title)}</h2><label style="${fl}">Reason</label><select id="rs">${REASONS[kind].map(x=>`<option>${x}</option>`).join('')}</select><label style="${fl}">Note</label><input id="rn" placeholder="Required if the reason is Other" maxlength="80"><div class="row" style="margin-top:14px"><button class="p" onclick="doReason()">Confirm</button><button onclick="closeModal()">Cancel</button></div><p class="mut">Saved in the audit log with your name and the time.</p>`)}
+function doReason(){const r=$('#rs').value,n=clean($('#rn').value);if(r==='Other'&&!n)return toast('Add a short note.');const cb=rcb;rcb=null;closeModal();if(cb)cb(r+(n?': '+n:''))}
+function auSum(l){const s={void:{n:0,a:0},refund:{n:0,a:0},disc:{n:0,a:0},price:{n:0,a:0},other:{n:0,a:0}};l.forEach(a=>{const k=s[a.type]||s.other;k.n++;k.a=r2(k.a+(a.amt||0))});return s}
+function auBase(){const n=new Date(),d0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();return audit.filter(a=>auRange==='all'||(auRange==='day'&&a.at>=d0)||(auRange==='shift'&&shift.open&&a.at>=shift.at))}
+function auCsv(){return ['time,who,approved_by,type,action,detail,amount',...auBase().filter(a=>auType==='all'||a.type===auType).map(a=>[new Date(a.at).toISOString(),a.who,a.appr||'','"'+a.type+'"','"'+a.act+'"','"'+String(a.detail).replace(/"/g,'""')+'"',a.amt.toFixed(2)].join(','))].join('\n')}
+function vAudit(){if(me.role!=='Admin'&&!auOpen)return `<div class="card" style="max-width:520px"><h2>Audit log</h2><p class="mut">Only an admin can review the audit log.</p><button class="p" onclick="mgr(()=>{auOpen=true;render()})">Enter admin PIN</button></div>`;
+const base=auBase(),s=auSum(base),list=base.filter(a=>auType==='all'||a.type===auType),by={};
+base.forEach(a=>{const w=by[a.who]=by[a.who]||{void:0,refund:0,disc:0,price:0};if(w[a.type]!=null)w[a.type]++});
+const kp=(l,k,m)=>`<div class="card"><div class="mut">${l}</div><div class="kpi">${s[k].n}</div>${m?`<div class="mut">${m$(s[k].a)}</div>`:''}</div>`;
+const cls={void:'b',refund:'b',disc:'w',price:'',other:''},nm={void:'Void',refund:'Refund',disc:'Discount',price:'Price',other:'Other'};
+return `<div class="row" style="margin-bottom:10px"><h2 style="flex:1">Audit log</h2><button onclick="cp(auCsv())">Copy CSV</button></div>
+<div class="row" style="margin-bottom:10px"><select style="width:auto" onchange="auRange=this.value;render()"><option value="day" ${auRange==='day'?'selected':''}>Today</option><option value="shift" ${auRange==='shift'?'selected':''}>This shift</option><option value="all" ${auRange==='all'?'selected':''}>All saved</option></select>${[['all','All'],['void','Voids'],['refund','Refunds'],['disc','Discounts'],['price','Price changes'],['other','Other']].map(x=>`<button class="chip ${auType===x[0]?'on':''}" onclick="auType='${x[0]}';render()">${x[1]}</button>`).join('')}</div>
+<div class="cols">${kp('Voids','void',1)}${kp('Refunds','refund',1)}${kp('Discounts','disc',1)}${kp('Price changes','price')}</div>
+<div class="card" style="margin-top:10px"><h3>By staff</h3>${Object.entries(by).map(([w,v])=>`<div class="line"><span class="n">${esc(w)}<small>${v.void} voids · ${v.refund} refunds · ${v.disc} discounts · ${v.price} price changes</small></span></div>`).join('')||'<p class="mut">No activity in this range.</p>'}</div>
+<div class="card" style="margin-top:10px"><h3>Entries</h3>${list.length?`<table><tr><th>When</th><th>Who</th><th>What</th></tr>${list.slice(0,200).map(a=>`<tr><td>${new Date(a.at).toLocaleDateString()}<br><small class="mut">${new Date(a.at).toLocaleTimeString()}</small></td><td>${esc(a.who)}${a.appr?'<br><small class="mut">OK by '+esc(a.appr)+'</small>':''}</td><td><span class="tag ${cls[a.type]||''}">${nm[a.type]||'Other'}</span> <b>${esc(a.act)}</b><br><small class="mut">${esc(a.detail)}</small>${a.amt?'<br>'+m$(a.amt):''}</td></tr>`).join('')}</table>${list.length>200?'<p class="mut">Showing the latest 200. Copy CSV for everything.</p>':''}`:'<p class="mut">Nothing logged in this range.</p>'}</div>`}
+
+/* ===== Seats, SC/PWD, zero-rated ===== */
+function setSeat(n){tickets[cur].seat=n;render()}
+function addSeat(){const t=tickets[cur];(t.sp||[]).forEach(h=>{if(h.seat===0)h.seat=1});t.ns=Math.min(8,(t.ns||1)+1);t.seat=t.ns;render()}
+function cycSeat(i){const t=tickets[cur],l=t.lines[i];l.seat=(l.seat||1)%(t.ns||1)+1;render()}
+function spModal(){const t=tickets[cur],ns=t.type==='dine'?(t.ns||1):1;
+modal(`<h2>Senior / PWD discount</h2><p class="mut">20% off and VAT-exempt on the cardholder's own food and drinks. Check the ID first.</p>${(t.sp||[]).map((h,i)=>`<div class="line"><span class="n">${h.type==='SC'?'Senior':'PWD'} · ${esc(h.name)}<small>ID ${esc(h.id)} · ${h.seat?'Seat '+h.seat:'Whole ticket'}</small></span><button class="d" onclick="rmSp(${i})">Remove</button></div>`).join('')}
+<label style="${fl}">Type</label><select id="st"><option value="SC">Senior citizen</option><option value="PWD">Person with disability</option></select>
+<label style="${fl}">Name on ID</label><input id="sn" maxlength="60" autocomplete="off">
+<label style="${fl}">ID number</label><input id="si" maxlength="30" autocomplete="off">
+<label style="${fl}">Applies to</label><select id="ss">${ns===1?'<option value="0">Whole ticket (dining alone)</option>':''}${[...Array(ns)].map((_,i)=>`<option value="${i+1}">Seat ${i+1} only</option>`).join('')}</select>
+<div class="row" style="margin-top:14px"><button class="p" onclick="addSp()">Add discount</button><button onclick="closeModal();render()">Done</button></div>`)}
+function addSp(){const t=tickets[cur],type=$('#st').value,name=clean($('#sn').value),id=clean($('#si').value),seat=+$('#ss').value;if(name.length<2)return toast('Enter the name on the ID.');if(id.length<4)return toast('Enter the ID number.');t.sp=t.sp||[];if(t.sp.some(h=>h.id.toLowerCase()===id.toLowerCase()))return toast('That ID is already on this ticket.');if(t.sp.some(h=>h.seat===seat))return toast(seat?'Seat '+seat+' already has a discount.':'This ticket already has a discount.');
+t.sp.push({type,name,id,seat});const h=calc(t).spl.find(x=>x.id===id);log('disc','SC/PWD discount',t.k+' · '+type+' · '+name+' · ID '+id+' · '+(seat?'seat '+seat:'whole ticket'),h?h.disc:0);spModal();render()}
+function rmSp(i){const t=tickets[cur],h=t.sp[i];log('disc','SC/PWD discount removed',t.k+' · '+h.type+' · '+h.name+' · ID '+h.id,0);t.sp.splice(i,1);spModal();render()}
+function zrModal(){const t=tickets[cur];if(t.zr)return mgr(()=>{log('disc','Zero-rated removed',t.k+' · '+t.zr.ref,0);t.zr=null;render()});
+mgr(()=>modal(`<h2>Zero-rated sale</h2><p class="mut">For buyers that are zero-rated by law, such as PEZA-registered firms or diplomats. VAT is removed from the regular items.</p><label style="${fl}">Buyer and proof</label><input id="zr" maxlength="60" placeholder="PEZA certificate or embassy ID no."><div class="row" style="margin-top:14px"><button class="p" onclick="saveZr()">Apply</button><button onclick="closeModal()">Cancel</button></div>`))}
+function saveZr(){const t=tickets[cur],ref=clean($('#zr').value);if(ref.length<3)return toast('Enter the buyer and proof.');t.zr={ref};log('disc','Zero-rated sale',t.k+' · '+ref,calc(t).zv);closeModal();render()}
+
+/* ===== Split bill ===== */
+const units=t=>{const u=[];t.lines.forEach((l,li)=>{for(let k=0;k<l.q;k++)u.push({li,seat:l.seat||1})});return u};
+const guestOpts=(n,sel)=>[...Array(n)].map((_,g)=>`<option value="${g+1}" ${sel===g+1?'selected':''}>Guest ${g+1}</option>`).join('');
+function splitModal(){const t=tickets[cur];if(!t||!t.lines.length)return toast('Add items before splitting.');SPL={mode:(t.ns||1)>1?'seat':'item',n:2,asg:[],hg:{}};paintSplit()}
+function setN(n){SPL.n=n;SPL.asg=SPL.asg.map(a=>Math.min(a||1,n));Object.keys(SPL.hg).forEach(k=>SPL.hg[k]=Math.min(SPL.hg[k],n));paintSplit()}
+function paintSplit(){const t=tickets[cur],S=SPL,c=calc(t),u=units(t);
+const tabs=[['seat','By seat'],['item','By item'],['even','Evenly']].map(x=>`<button class="chip ${S.mode===x[0]?'on':''}" onclick="SPL.mode='${x[0]}';paintSplit()">${x[1]}</button>`).join('');
+const counter=(lo,hi)=>`<div class="row" style="margin-bottom:6px"><span class="mut">Guests</span>${[...Array(hi-lo+1)].map((_,i)=>`<button class="chip ${S.n===lo+i?'on':''}" onclick="setN(${lo+i})">${lo+i}</button>`).join('')}</div>`;
+let body='';
+if(S.mode==='seat'){const seats=[...new Set(u.map(x=>x.seat))].sort((a,b)=>a-b);
+body=seats.length<2?'<p class="mut">Only one seat has items. Put items on different seats with the Seat buttons on the ticket, or split by item.</p>':`<p class="mut">Each seat gets its own bill and official receipt.</p>${seats.map(s=>`<div class="line"><span class="n">Seat ${s}<small>${u.filter(x=>x.seat===s).length} items${(t.sp||[]).some(h=>h.seat===s)?' · SC/PWD':''}</small></span>${m$(t.lines.filter(l=>(l.seat||1)===s).reduce((a,l)=>a+l.p*l.q,0))}</div>`).join('')}<button class="p" style="margin-top:10px" onclick="doSplit()">Create ${seats.length} bills</button>`}
+else if(S.mode==='item'){body=`${counter(2,6)}${(t.sp||[]).map((h,hi)=>`<div class="line"><span class="n">${h.type==='SC'?'Senior':'PWD'} · ${esc(h.name)}<small>Discount goes on this guest's bill</small></span><select style="width:auto" onchange="SPL.hg[${hi}]=+this.value">${guestOpts(S.n,S.hg[hi]||1)}</select></div>`).join('')}${u.map((x,i)=>{const l=t.lines[x.li];return `<div class="line"><span class="n">${l.n}<small>${l.mod||''} ${m$(l.p)}</small></span><select style="width:auto" onchange="SPL.asg[${i}]=+this.value;splTot()">${guestOpts(S.n,S.asg[i]||1)}</select></div>`}).join('')}<div id="sptot" class="tot" style="margin-top:8px"></div><button class="p" style="margin-top:10px" onclick="doSplit()">Create bills</button>`}
+else{body=`${counter(2,8)}<p>Total <b>${m$(c.due)}</b> · about <b>${m$(c.due/S.n)}</b> each</p><p class="mut">One official receipt for the whole bill. Each guest pays in turn and can use a different method.</p><button class="p" onclick="doSplit()">Start split payment</button>`}
+modal(`<h2>Split bill · ${esc(t.k)}</h2><div class="row" style="margin-bottom:8px">${tabs}</div>${body}<div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button></div>`);if(S.mode==='item')splTot()}
+function splTot(){const t=tickets[cur],S=SPL,sum={};units(t).forEach((x,i)=>{const g=S.asg[i]||1;sum[g]=(sum[g]||0)+t.lines[x.li].p});const e=$('#sptot');if(e)e.innerHTML=[...Array(S.n)].map((_,g)=>`<div><span>Guest ${g+1} (before discounts)</span>${m$(sum[g+1]||0)}</div>`).join('')}
+function doSplit(){const t=tickets[cur],S=SPL,u=units(t);if(S.mode==='even'){const n=S.n;SPL=null;closeModal();pendSplit=n;return checkout()}
+const g=u.map((x,i)=>S.mode==='seat'?x.seat:(S.asg[i]||1)),ids=[...new Set(g)].sort((a,b)=>a-b);if(ids.length<2)return toast('Put items on at least two bills.');
+const made=ids.map((id,bi)=>{const m={};u.forEach((x,i)=>{if(g[i]===id)m[x.li]=(m[x.li]||0)+1});
+const ch={k:t.k+' · '+(S.mode==='seat'?'Seat ':'Guest ')+id,type:t.type,lines:Object.keys(m).map(li=>({...t.lines[li],q:m[li],seat:1})),staff:t.staff,parent:t.parent||t.k,seat:1,ns:1};
+ch.sp=(t.sp||[]).filter((h,hi)=>S.mode==='seat'?(h.seat===id||(h.seat===0&&bi===0)):(S.hg[hi]||1)===id).slice(0,1).map(h=>({...h,seat:0}));
+if(bi===0){if(t.cust)ch.cust=t.cust;if(t.rp)ch.rp=t.rp;if(t.cr)ch.cr=t.cr}
+if(t.d&&(t.d.t==='%'||bi===0))ch.d={...t.d};if(t.zr)ch.zr=t.zr;return ch});
+delete tickets[t.k];made.forEach(x=>tickets[x.k]=x);cur=made[0].k;SPL=null;log('other','Bill split',t.k+' into '+made.length+' bills ('+S.mode+')',0);closeModal();render();toast('Split into '+made.length+' bills.')}
+
+/* ===== Menu management ===== */
+function vMenu(){const items=menu.filter(i=>(mc==='All'||i.c===mc)&&i.n.toLowerCase().includes(mq.toLowerCase())&&(mf==='all'||(mf==='hid'&&i.hid)||(mf==='86'&&is86(i))||(mf==='low'&&crit(i)))),n86=menu.filter(is86).length,nlow=menu.filter(crit).length,nh=menu.filter(i=>i.hid).length;
+const row=i=>{const o=is86(i),lo=crit(i);return `<div class="mi ${lo?'crit':''} ${i.hid?'hid':''}"><div class="n"><b>${i.e} ${i.n}</b> ${o?`<span class="tag b">86'd</span>`:''}${i.hid?'<span class="tag">Hidden</span>':''}${lo?`<span class="tag b">${i.s<=0?'Out of stock':'Critical'}</span>`:''}<small class="mut" style="display:block">${i.c} · ${m$(i.p)} · ${i.s} in stock (critical at ${par(i)})</small></div><div class="row"><button onclick="mgr(()=>priceModal(${i.id}))">Price</button><button class="${o?'p':''}" onclick="toggle86(${i.id})">${o?'Back in':'86'}</button><button onclick="toggleHide(${i.id})">${i.hid?'Show':'Hide'}</button><button onclick="mgr(()=>itemModal(${i.id}))">Edit</button></div></div>`};
+return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Menu items</h2><div class="row"><button class="p" onclick="mgr(()=>itemModal(0))">+ Add item</button><button onclick="mgr(catModal)">Categories</button>${n86?'<button onclick="clear86()">Clear 86 list</button>':''}</div></div>
+<p class="mut">86 means out for the day and clears itself tomorrow. Items at or below their critical level turn light red. Adding, editing and pricing need an admin PIN and go in the audit log.</p>
+<div class="row" style="margin:8px 0">${['All',...catList].map(x=>`<button class="chip ${mc===x?'on':''}" onclick="mc='${x}';render()">${x}</button>`).join('')}</div>
+<div class="row">${[['all','All'],['low','Low ('+nlow+')'],['86',"86'd ("+n86+')'],['hid','Hidden ('+nh+')']].map(x=>`<button class="chip ${mf===x[0]?'on':''}" onclick="mf='${x[0]}';render()">${x[1]}</button>`).join('')}<input id="mq" placeholder="Search items" value="${esc(mq)}" oninput="mq=this.value;render();const s=$('#mq');s.focus();s.setSelectionRange(mq.length,mq.length)" style="flex:1;min-width:120px"></div>
+${items.map(row).join('')||'<p class="mut">No items match.</p>'}</div>`}
+function toggle86(id){const i=menu.find(x=>x.id===id);i.x86=is86(i)?null:new Date().toDateString();log('other',is86(i)?"Marked 86'd":'Back on the menu',i.n,0);render()}
+function clear86(){const l=menu.filter(is86);l.forEach(i=>i.x86=null);log('other','Cleared 86 list',l.length+' items',0);render()}
+function toggleHide(id){const i=menu.find(x=>x.id===id);i.hid=!i.hid;log('other',i.hid?'Item hidden':'Item shown',i.n,0);render()}
+function priceModal(id){const i=menu.find(x=>x.id===id);modal(`<h2>Change price</h2><p class="mut">${i.e} ${i.n} · now ${m$(i.p)} (VAT included)</p><input id="np" type="number" step="0.01" min="0" inputmode="decimal" value="${i.p}"><div class="row" style="margin-top:10px"><button class="p" onclick="savePrice(${id})">Save price</button><button onclick="closeModal()">Cancel</button></div>`)}
+function savePrice(id){const i=menu.find(x=>x.id===id),v=r2(+$('#np').value);if(!(v>0))return toast('Enter a price above zero.');if(v===i.p)return closeModal();log('price','Price change',i.n+' '+m$(i.p)+' to '+m$(v),v-i.p);i.p=v;closeModal();render()}
+function itemModal(id){const it=id?menu.find(x=>x.id===id):{n:'',c:catList[0]||'',p:'',e:'🍽️',s:0,o:'',par:5};
+modal(`<h2>${id?'Edit item':'Add item'}</h2><label style="${fl}">Name</label><input id="f_n" maxlength="40" value="${esc(it.n)}"><div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label style="${fl}">Emoji</label><input id="f_e" maxlength="8" value="${esc(it.e)}"></div><div style="flex:1"><label style="${fl}">Price (VAT incl.)</label><input id="f_p" type="number" step="0.01" min="0" inputmode="decimal" value="${it.p}"></div></div>
+<label style="${fl}">Category</label><select id="f_c" onchange="$('#f_nc').style.display=this.value==='__new'?'block':'none'">${catList.map(c=>`<option ${c===it.c?'selected':''}>${esc(c)}</option>`).join('')}<option value="__new">New category…</option></select><input id="f_nc" placeholder="New category name" maxlength="20" style="display:none;margin-top:6px">
+<div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label style="${fl}">Stock on hand</label><input id="f_s" type="number" min="0" step="1" value="${it.s}"></div><div style="flex:1"><label style="${fl}">Critical at or below</label><input id="f_g" type="number" min="0" step="1" value="${par(it)}"></div></div>
+<label style="${fl}">Options when ordering</label><select id="f_o"><option value="" ${!it.o?'selected':''}>None</option><option value="f" ${it.o==='f'?'selected':''}>Add-ons (cheese, egg and so on)</option><option value="d" ${it.o==='d'?'selected':''}>Sizes (regular, large)</option></select>
+<div class="row" style="margin-top:14px"><button class="p" onclick="saveItem(${id})">${id?'Save changes':'Add item'}</button><button onclick="closeModal()">Cancel</button></div>`)}
+function saveItem(id){const n=String($('#f_n').value).replace(/[<>&`]/g,'').trim(),e=clean($('#f_e').value)||'🍽️',p=r2(+$('#f_p').value),s=Math.floor(+$('#f_s').value),g=Math.floor(+$('#f_g').value),o=$('#f_o').value;let c=$('#f_c').value;
+if(c==='__new'){c=clean($('#f_nc').value);if(!c)return toast('Enter the new category name.')}
+if(!n)return toast('Enter an item name.');if(!(p>0))return toast('Enter a price above zero.');if(!(s>=0)||!(g>=0))return toast('Stock numbers cannot be negative.');
+if(menu.some(x=>x.id!==id&&x.n.toLowerCase()===n.toLowerCase()))return toast('An item with that name already exists.');
+if(!catList.includes(c))catList.push(c);
+if(id){const it=menu.find(x=>x.id===id),pc=it.p!==p,old=it.p;Object.assign(it,{n,e,c,p,s,par:g,o});if(pc)log('price','Price change',n+' '+m$(old)+' to '+m$(p)+' (item edited)',p-old);else log('other','Item edited',n,0)}
+else{menu.push({id:Math.max(0,...menu.map(x=>x.id))+1,n,e,c,p,s,par:g,o});log('other','Item added',n+' · '+m$(p)+' · '+c,0)}
+closeModal();render();toast(id?'Saved.':'Item added.')}
+function catModal(){modal(`<h2>Categories</h2><p class="mut">Rename a category or add one. A category can be removed once it has no items.</p>${catList.map((c,i)=>{const n=menu.filter(x=>x.c===c).length;return `<div class="row" style="margin:6px 0;flex-wrap:nowrap"><input id="cr${i}" value="${esc(c)}" maxlength="20"><button onclick="renCat(${i})">Rename</button><button class="d" ${n?'disabled title="Has items"':''} onclick="delCat(${i})">Remove</button></div>`}).join('')}<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="cnew" placeholder="New category" maxlength="20"><button class="p" onclick="addCat()">Add</button></div><div style="margin-top:12px"><button onclick="closeModal();render()">Done</button></div>`)}
+function renCat(i){const v=clean($('#cr'+i).value);if(!v)return toast('Enter a name.');if(catList.some((x,j)=>j!==i&&x.toLowerCase()===v.toLowerCase()))return toast('That category already exists.');const old=catList[i];if(v===old)return;menu.forEach(x=>{if(x.c===old)x.c=v});catList[i]=v;if(cat===old)cat=v;if(mc===old)mc=v;log('other','Category renamed',old+' to '+v,0);catModal()}
+function delCat(i){const old=catList[i];if(menu.some(x=>x.c===old))return toast('Move or hide its items first.');if(catList.length<=1)return toast('Keep at least one category.');catList.splice(i,1);if(cat===old)cat='All';if(mc===old)mc='All';log('other','Category removed',old,0);catModal()}
+function addCat(){const v=clean($('#cnew').value);if(!v)return toast('Enter a name.');if(catList.some(x=>x.toLowerCase()===v.toLowerCase()))return toast('That category already exists.');catList.push(v);log('other','Category added',v,0);catModal()}
+
+/* ===== Settings (receipt and BIR details) ===== */
+function vSettings(){const f=(k,l,ph)=>`<label style="${fl}">${l}</label><input id="cf_${k}" value="${esc(cfg[k]||'')}" placeholder="${ph}" maxlength="80" autocomplete="off">`,left=cfg.serTo?Math.max(0,cfg.serTo-orSeq):0;
+return `<div class="card" style="max-width:560px"><h2>Receipt and BIR details</h2><p class="mut">These print on every official receipt and shift report. Copy them from your BIR registration, permit to use and authority to print.</p>${f('tin','TIN (VAT registered)','000-000-000-00000')}${f('reg','Registered name (optional)','Registered business name')}${f('min','Machine ID no. (MIN)','')}${f('sn','POS serial no.','')}${f('ptu','Permit to use (PTU) no.','')}${f('atp','Authority to print (ATP) no.','')}
+<div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label style="${fl}">OR series from</label><input id="cf_serFrom" type="number" min="1" value="${cfg.serFrom}"></div><div style="flex:1"><label style="${fl}">OR series to</label><input id="cf_serTo" type="number" min="0" value="${cfg.serTo||''}"></div></div>
+<label style="${fl}">Service charge % (dine-in)</label><input id="cf_svc" type="number" min="0" max="30" step="0.5" value="${cfg.svc}">${f('sup','POS supplier line (name, TIN, accreditation no.)','Prints at the bottom of receipts')}
+<p class="mut">Next OR number: <b>${fmtOR(orSeq+1)}</b>${cfg.serTo?' · '+left+' left in this series':''}</p><button class="p" onclick="mgr(saveCfg)">Save details</button></div>
+<div class="card" style="max-width:560px;margin-top:10px"><h3>How the tax lines work</h3><p class="mut">Menu prices include 12% VAT. A Senior or PWD discount removes the VAT first, then takes 20% off, and that sale prints under VAT-exempt. Zero-rated sales need an admin PIN. The OR number goes up by one on every sale, and checkout stops when the series runs out.</p></div>`}
+function saveCfg(){const g=k=>($('#cf_'+k).value||'').trim(),tin=g('tin'),t=tin?fmtTin(tin):'';if(t===null)return toast('TIN needs 9 to 14 digits.');
+const from=Math.max(1,Math.floor(+g('serFrom')||1)),to=Math.floor(+g('serTo')||0),svc=+g('svc');if(to&&to<from)return toast('Series end must be after the start.');if(to&&to<orSeq)return toast('Series end is below the last OR already issued.');if(!(svc>=0&&svc<=30))return toast('Service charge must be 0 to 30.');
+const nv={tin:t,reg:g('reg'),min:g('min'),sn:g('sn'),ptu:g('ptu'),atp:g('atp'),serFrom:from,serTo:to,svc,sup:g('sup')},ch=Object.keys(nv).filter(k=>String(nv[k])!==String(cfg[k]));
+if(!ch.length)return toast('No changes to save.');cfg=nv;if(orSeq<from-1)orSeq=from-1;log('other','Receipt and BIR details changed',ch.join(', '),0);render();toast('Saved.')}
+function net(){const o=navigator.onLine;$('#net').className='dot'+(o?'':' off');$('#netl').textContent=o?'Online':'Offline';$('#netl').className=o?'hs':''}
+addEventListener('online',net);addEventListener('offline',net);load();net();render();
+if(DISP){setInterval(()=>{load();render()},1000);const beat=()=>{try{bc&&bc.postMessage({t:'hb'})}catch(e){}};beat();setInterval(beat,2000);try{bc&&bc.postMessage({t:'ask'})}catch(e){}}else{setInterval(()=>{updateBadge();if(cdsFull)paintCf()},1500);if(!GUEST)setInterval(checkLock,5000)}
+</script>
 </body>
 </html>
